@@ -2,20 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom Styles */
+html,
+body,
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+    height: 100%;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.leaflet-bottom,
+.leaflet-control,
+.leaflet-pane,
+.leaflet-top {
+    z-index: 0 !important;
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+/* Loader Styles */
+.loader {
+    border-color: #f0e2e2; /* Tailwind gray-200 */
+    border-top-color: #4a5568; /* Tailwind gray-600 */
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
