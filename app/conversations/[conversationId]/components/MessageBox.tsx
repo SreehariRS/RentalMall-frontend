@@ -17,8 +17,6 @@ function MessageBox({ data, isLast }: MessageBoxProps) {
   const [isImageEnlarged, setIsImageEnlarged] = useState(false);
   
   const isOwn = session?.data?.user?.email === data?.sender?.email;
-  const seenUser = (data.seen || [])
-    .find((user) => user.email !== data.sender.email);
 
   const toggleImageSize = () => {
     setIsImageEnlarged(!isImageEnlarged);
@@ -68,15 +66,6 @@ function MessageBox({ data, isLast }: MessageBoxProps) {
             </div>
           )}
         </div>
-        
-        {isLast && isOwn && seenUser && (
-          <div className="flex items-center gap-1 mt-1">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <span className="text-xs text-gray-500">
-              Seen by {seenUser.name}
-            </span>
-          </div>
-        )}
       </div>
     </div>
   );

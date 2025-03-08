@@ -1,38 +1,34 @@
-import getCurrentUser from "@/app/actions/getCurrentUser"
-import { NextResponse } from "next/server"
-import prisma from "@/app/libs/prismadb"
-import { pusherServer } from "@/app/libs/pusher"
+import getCurrentUser from "@/app/actions/getCurrentUser";
+import { NextResponse } from "next/server";
+import prisma from "@/app/libs/prismadb";
+import { pusherServer } from "@/app/libs/pusher";
 
 export async function POST(request: Request) {
     try {
-        const currentUser = await getCurrentUser()
-        const body = await request.json()
-        const { message, image, voice, conversationId } = body
+        const currentUser = await getCurrentUser();
+        const body = await request.json();
+        const { message, image, voice, conversationId } = body;
 
         if (!currentUser?.id || !currentUser?.email) {
-            return new NextResponse("Unauthorized", { status: 401 })
+            return new NextResponse("Unauthorized", { status: 401 });
         }
 
         const newMessage = await prisma.message.create({
             data: {
                 body: message,
                 image: image,
-                voice: voice, // Added voice field
+                voice: voice,
                 conversation: {
                     connect: { id: conversationId }
                 },
                 sender: {
                     connect: { id: currentUser.id }
-                },
-                seen: {
-                    connect: { id: currentUser.id }
                 }
             },
             include: {
-                seen: true,
                 sender: true
             }
-        })
+        });
 
         const updatedConversation = await prisma.conversation.update({
             where: { id: conversationId },
@@ -45,22 +41,46 @@ export async function POST(request: Request) {
             include: {
                 users: true,
                 messages: {
-                    include: { seen: true }
+                    take: 1,
+                    orderBy: { createdAt: 'desc' }
                 }
             }
-        })
+        });
 
-        await pusherServer.trigger(conversationId, 'messages:new', newMessage)
-        const lastMessage = updatedConversation.messages[updatedConversation.messages.length - 1]
-        updatedConversation.users.map((user) => {
-            pusherServer.trigger(user.email!, "conversation:update", {
-                id: conversationId,
-                messages: [lastMessage]
-            })
-        })
-        return NextResponse.json(newMessage)
+        // Simplify the Pusher payload to avoid 413 error
+        await pusherServer.trigger(conversationId, 'messages:new', {
+            id: newMessage.id,
+            body: newMessage.body,
+            image: newMessage.image,
+            voice: newMessage.voice,
+            createdAt: newMessage.createdAt,
+            sender: {
+                id: newMessage.sender.id,
+                name: newMessage.sender.name,
+                email: newMessage.sender.email
+            }
+        });
+
+        const lastMessage = updatedConversation.messages[0];
+        updatedConversation.users.forEach((user) => {
+            if (user.email) {
+                pusherServer.trigger(user.email, "conversation:update", {
+                    id: conversationId,
+                    lastMessageAt: updatedConversation.lastMessageAt,
+                    lastMessage: {
+                        id: lastMessage.id,
+                        body: lastMessage.body,
+                        image: lastMessage.image,
+                        voice: lastMessage.voice,
+                        createdAt: lastMessage.createdAt
+                    }
+                });
+            }
+        });
+
+        return NextResponse.json(newMessage);
     } catch (error: any) {
-        console.log(error, "ERROR_MESSAGES")
-        return new NextResponse("InternalError", { status: 500 })
+        console.log(error, "ERROR_MESSAGES");
+        return new NextResponse("InternalError", { status: 500 });
     }
 }
