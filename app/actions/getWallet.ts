@@ -23,8 +23,11 @@ export async function getOrCreateWallet(userId: string) {
     }
 
     return wallet;
-  } catch (error: any) {
-    throw new Error(`Failed to get or create wallet: ${error.message}`);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to get or create wallet: ${error.message}`);
+    }
+    throw new Error("Failed to get or create wallet: Unknown error occurred");
   }
 }
 

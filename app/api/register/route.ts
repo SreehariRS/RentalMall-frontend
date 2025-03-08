@@ -52,12 +52,12 @@ export async function POST(request: Request) {
       message: "User created successfully. Email verification sent.",
       user: { id: user.id, email: user.email, name: user.name },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in /api/register:", error);
     return NextResponse.json(
       {
         error: "Something went wrong while creating the user.",
-        details: error.message || "Unknown error",
+        details: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }
     );

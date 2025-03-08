@@ -19,7 +19,7 @@ export async function GET(req: Request, { params }: { params: { userId: string }
         }
 
         return NextResponse.json({ isRestricted: user.isRestricted });
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: "Failed to fetch restriction status" }, { status: 500 });
     }
 }

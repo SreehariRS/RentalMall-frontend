@@ -3,7 +3,7 @@ import prisma from '@/app/libs/prismadb';
 import getCurrentUser from "@/app/actions/getCurrentUser";
 import { pusherServer } from "@/app/libs/pusher";
 
-export async function GET(request: Request) {
+export async function GET() { // Removed unused 'request' parameter
     const currentUser = await getCurrentUser();
     
     if (!currentUser) {
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
         }
         
         const body = await request.json();
-        const { userId, message, type = "info", hostInfo } = body;
+        const { userId, message, type = "info" } = body; // Removed unused 'hostInfo'
         
         if (!userId || !message) {
             return new NextResponse("Missing required fields", { status: 400 });

@@ -8,6 +8,7 @@ export default async function getFavoriteListings() {
         if (!currentUser) {
             return [];
         }
+        
         const favorites = await prisma.listing.findMany({
             where: {
                 id: {
@@ -15,12 +16,14 @@ export default async function getFavoriteListings() {
                 },
             },
         });
-        const safeFavorites = favorites.map((favorites) => ({
-            ...favorites,
-            createdAt: favorites.createdAt.toISOString(),
+        
+        const safeFavorites = favorites.map((favorite) => ({
+            ...favorite,
+            createdAt: favorite.createdAt.toISOString(),
         }));
+        
         return safeFavorites;
-    } catch (error: any) {
-        throw new Error(error);
+    } catch (error: unknown) {
+        throw new Error("Failed to fetch favorite listings");
     }
 }

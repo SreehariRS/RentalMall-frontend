@@ -21,12 +21,38 @@ import { Users, BookOpen, Home, TrendingUp } from "lucide-react";
 import { getDashboardStats } from "../../../services/adminApi";
 import Loader from "@/app/components/Loader";
 
+// Define types for your data
+interface MonthlyBooking {
+  month: string;
+  bookings: number;
+}
+
+interface CategoryData {
+  name: string;
+  value: number;
+}
+
+interface DashboardStats {
+  totalUsers: number;
+  usersGrowth: number;
+  totalBookings: number;
+  bookingsGrowth: number;
+  totalListings: number;
+  listingsGrowth: number;
+  totalHosts: number;
+  hostsGrowth: number;
+  monthlyBookings: MonthlyBooking[];
+  bookingsByCategory: CategoryData[];
+  listingsByCategory: CategoryData[];
+  [key: string]: number | MonthlyBooking[] | CategoryData[]; // Index signature for dynamic access
+}
+
 type VerticalAlignmentType = "top" | "middle" | "bottom";
 
 function DarkDashboard() {
     const router = useRouter();
 
-    const [stats, setStats] = useState<any>(null);
+    const [stats, setStats] = useState<DashboardStats | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -50,7 +76,7 @@ function DarkDashboard() {
                         monthlyBookings: extendedBookingData,
                     });
                 }
-            } catch (error) {
+            } catch {
                 setError("Failed to fetch dashboard stats");
             } finally {
                 setLoading(false);
@@ -60,7 +86,7 @@ function DarkDashboard() {
         fetchStats();
     }, []);
 
-    const extendMonthlyData = (data: any[]) => {
+    const extendMonthlyData = (data: MonthlyBooking[]): MonthlyBooking[] => {
         const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
         const dataMap = new Map(data.map((item) => [item.month, item.bookings]));
         return months.map((month) => ({
@@ -97,10 +123,10 @@ function DarkDashboard() {
 
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                             {[
-                                { icon: Users, color: "blue", stat: "totalUsers", growth: "usersGrowth" },
-                                { icon: BookOpen, color: "red", stat: "totalBookings", growth: "bookingsGrowth" },
-                                { icon: Home, color: "purple", stat: "totalListings", growth: "listingsGrowth" },
-                                { icon: Users, color: "green", stat: "totalHosts", growth: "hostsGrowth" },
+                                { icon: Users, color: "blue", stat: "totalUsers" as keyof DashboardStats, growth: "usersGrowth" as keyof DashboardStats },
+                                { icon: BookOpen, color: "red", stat: "totalBookings" as keyof DashboardStats, growth: "bookingsGrowth" as keyof DashboardStats },
+                                { icon: Home, color: "purple", stat: "totalListings" as keyof DashboardStats, growth: "listingsGrowth" as keyof DashboardStats },
+                                { icon: Users, color: "green", stat: "totalHosts" as keyof DashboardStats, growth: "hostsGrowth" as keyof DashboardStats },
                             ].map(({ icon: Icon, color, stat, growth }) => (
                                 <div
                                     key={stat}
@@ -109,11 +135,15 @@ function DarkDashboard() {
                                     <div className="flex justify-between items-center mb-4">
                                         <Icon className={`text-${color}-400`} size={32} />
                                         <span className="text-sm text-gray-500 uppercase tracking-wider">
-                                            {stat.replace("total", "Total ")}
+                                            {(stat as string).replace("total", "Total ")}
                                         </span>
                                     </div>
-                                    <p className={`text-4xl font-bold text-${color}-400`}>{stats[stat]}</p>
-                                    <div className="text-sm text-green-500 mt-2">{stats[growth]}% from last month</div>
+                                    <p className={`text-4xl font-bold text-${color}-400`}>
+                                        {stats && typeof stats[stat] === "number" ? stats[stat] : 0}
+                                    </p>
+                                    <div className="text-sm text-green-500 mt-2">
+                                        {stats && typeof stats[growth] === "number" ? stats[growth] : 0}% from last month
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -128,7 +158,7 @@ function DarkDashboard() {
                                 <div className="text-sm text-gray-500">Full Year Overview</div>
                             </div>
                             <ResponsiveContainer width="100%" height={350}>
-                                <LineChart data={stats.monthlyBookings}>
+                                <LineChart data={stats?.monthlyBookings ?? []}>
                                     <CartesianGrid
                                         strokeDasharray="3 3"
                                         horizontal={true}
@@ -171,7 +201,7 @@ function DarkDashboard() {
                                 <ResponsiveContainer width="100%" height={350}>
                                     <PieChart>
                                         <Pie
-                                            data={stats.bookingsByCategory || []}
+                                            data={stats?.bookingsByCategory || []}
                                             cx="50%"
                                             cy="50%"
                                             labelLine={false}
@@ -179,7 +209,7 @@ function DarkDashboard() {
                                             fill="#8884d8"
                                             dataKey="value"
                                         >
-                                            {(stats.bookingsByCategory || []).map((entry: any, index: number) => (
+                                            {(stats?.bookingsByCategory || []).map((entry: CategoryData, index: number) => (
                                                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                             ))}
                                         </Pie>
@@ -204,7 +234,7 @@ function DarkDashboard() {
                             <div className="bg-gray-800 rounded-xl shadow-2xl p-6 border-2 border-gray-700">
                                 <h2 className="text-2xl font-semibold text-gray-200 mb-4">Listings Per Category</h2>
                                 <ResponsiveContainer width="100%" height={350}>
-                                    <BarChart data={stats.listingsByCategory || []}>
+                                    <BarChart data={stats?.listingsByCategory || []}>
                                         <CartesianGrid
                                             strokeDasharray="3 3"
                                             horizontal={true}
@@ -227,7 +257,7 @@ function DarkDashboard() {
                                             }}
                                         />
                                         <Bar dataKey="value">
-                                            {(stats.listingsByCategory || []).map((entry: any, index: number) => (
+                                            {(stats?.listingsByCategory || []).map((entry: CategoryData, index: number) => (
                                                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                             ))}
                                         </Bar>

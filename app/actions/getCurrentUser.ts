@@ -24,7 +24,6 @@ export default async function getCurrentUser() {
       return null; // User not found
     }
 
- 
     return {
       ...currentUser,
       createdAt: currentUser.createdAt.toISOString(),
@@ -32,7 +31,7 @@ export default async function getCurrentUser() {
       emailVerified: currentUser.emailVerified?.toISOString() || null,
       isBlocked: currentUser.isBlocked || false, 
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching current user:", error);
     return null;
   }

@@ -28,7 +28,7 @@ export async function GET() {
                 listingCount: host.listings.length,
             }))
         );
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: "Failed to fetch hosts" }, { status: 500 });
     }
 }
@@ -48,7 +48,7 @@ export async function PATCH(req: Request) {
         });
 
         return NextResponse.json({ success: true, isRestricted: updatedHost.isRestricted });
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: "Failed to update host restriction" }, { status: 500 });
     }
 }

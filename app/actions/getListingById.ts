@@ -37,7 +37,10 @@ export default async function getListingById(params: IParams) {
           }
         : null,
     };
-  } catch (error: any) {
-    throw new Error(error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to fetch listing: ${error.message}`);
+    }
+    throw new Error("Failed to fetch listing");
   }
 }

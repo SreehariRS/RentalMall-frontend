@@ -22,7 +22,7 @@ function HostManagementPage() {
             try {
                 const response = await axios.get("/api/hosts");
                 setHosts(response.data);
-            } catch (err) {
+            } catch {
                 setError("Failed to load hosts");
             } finally {
                 setLoading(false);

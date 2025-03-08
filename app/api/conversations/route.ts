@@ -31,35 +31,34 @@ export async function POST(request: Request) {
                 ],
             },
         });
-const singleConversation = existingConversations[0]
- if(singleConversation){
-    return NextResponse.json(singleConversation)
- }
-    const newConversation = await prisma.conversation.create({
-        data:{
-            users:{
-                connect:[
-                    {
-                        id:currentUser.id
-                    },
-                    {
-                        id:userId
-                    }
-                ]
+        const singleConversation = existingConversations[0];
+        if (singleConversation) {
+            return NextResponse.json(singleConversation);
+        }
+        const newConversation = await prisma.conversation.create({
+            data: {
+                users: {
+                    connect: [
+                        {
+                            id: currentUser.id,
+                        },
+                        {
+                            id: userId,
+                        },
+                    ],
+                },
+            },
+            include: {
+                users: true,
+            },
+        });
+        newConversation.users.map((user) => {
+            if (user.email) {
+                pusherServer.trigger(user.email, "conversation:new", newConversation);
             }
-        },include:{
-            users:true             
-        }
-    })
-    newConversation.users.map((user)=>{
-        if(user.email){
-            pusherServer.trigger(user.email, "conversation:new", newConversation)
-        }
-    })
-    return NextResponse.json(newConversation)
-
-
-    } catch (error: any) {
+        });
+        return NextResponse.json(newConversation);
+    } catch {
         return new NextResponse("internal Error", { status: 500 });
     }
 }

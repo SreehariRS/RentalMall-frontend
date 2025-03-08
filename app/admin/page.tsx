@@ -9,12 +9,10 @@ import { loginAdmin } from "../../services/adminApi";
 export default function AdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
 
     try {
       const response = await loginAdmin(email, password);
@@ -31,7 +29,7 @@ export default function AdminLogin() {
       } else {
         toast.error("Invalid credentials");
       }
-    } catch (err) {
+    } catch {
       toast.error("An unexpected error occurred. Please try again.");
     }
   };

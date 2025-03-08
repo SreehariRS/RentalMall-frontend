@@ -42,8 +42,6 @@ export async function DELETE(
         throw new Error("Unauthorized");
       }
 
-      const guestWallet = await getOrCreateWallet(reservation.userId);
-
       const updatedWallet = await prisma.wallet.update({
         where: { userId: reservation.userId },
         data: {
