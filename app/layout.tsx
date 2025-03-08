@@ -7,6 +7,9 @@ import LoginModal from "./components/modals/LoginModal";
 import getCurrentUser from "./actions/getCurrentUser";
 import RentModal from "./components/modals/RentModal";
 import NavbarWrapper from "./components/Navbar/navbarWrapper";
+import SearchModal from "./components/modals/SearchModal";
+import AuthProvider from "./providers/AuthProvider";
+import ActiveStatus from "./components/ActiveStatus";
 
 const geistSans = Nunito({
   variable: "--font-geist-sans",
@@ -33,13 +36,17 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <TosterProviders />
-        <RentModal />
-        <LoginModal />
-        <RegisterModal />
-        <NavbarWrapper currentUser={currentUser}>
-          {children}
-        </NavbarWrapper>
+        <AuthProvider>
+          <TosterProviders />
+          <RentModal />
+          <SearchModal/>
+          <LoginModal />
+          <RegisterModal />
+          <NavbarWrapper currentUser={currentUser}>
+            <ActiveStatus/>
+            {children}
+          </NavbarWrapper>
+        </AuthProvider>
       </body>
     </html>
   );

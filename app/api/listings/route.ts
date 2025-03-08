@@ -3,52 +3,69 @@ import getCurrentUser from "@/app/actions/getCurrentUser";
 import prisma from "@/app/libs/prismadb";
 
 export async function POST(request: Request) {
-    // Get the current user
+  try {
     const currentUser = await getCurrentUser();
     if (!currentUser) {
-        return NextResponse.error();
+      return NextResponse.json({ error: "User not authenticated" }, { status: 401 });
     }
 
-    // Parse the request body
     const body = await request.json();
+    console.log("Image URLs received:", body.imageSrc);
+
     const { 
-        title, 
-        description, 
-        imageSrc, 
-        category, 
-        roomCount, 
-        guestCount, 
-        location, 
-        price 
+      title, 
+      description, 
+      imageSrc, 
+      category, 
+      roomCount, 
+      guestCount, 
+      location, 
+      price 
     } = body;
-
-    // Validate all fields
-    for (const key in body) {
-        if (!body[key]) {
-            return NextResponse.error(); // Return an error if any field is missing
-        }
+   
+    // Validate imageSrc
+    if (!imageSrc || !Array.isArray(imageSrc)) {
+      return NextResponse.json({ 
+        error: "imageSrc must be an array of strings" 
+      }, { status: 400 });
     }
 
-    // Create the listing in the database
-    try {
-        const listing = await prisma.listing.create({
-            data: {
-                title,
-                description,
-                imageSrc,
-                category,
-                roomCount,
-                guestCount,
-                locationValues: location.value, // Use 'locationValues' as per your schema
-                price: parseInt(price, 10),
-                userId: currentUser.id, 
-            },
-        });
-
-        // Return the created listing
-        return NextResponse.json(listing);
-    } catch (error) {
-        console.error("Error creating listing:", error);
-        return NextResponse.error();
+    // Ensure all URLs in imageSrc are strings
+    const validUrls = imageSrc.filter(url => typeof url === 'string' && url.trim() !== '');
+    if (validUrls.length === 0) {
+      return NextResponse.json({ 
+        error: "At least one valid image URL is required" 
+      }, { status: 400 });
     }
+
+
+    const listing = await prisma.listing.create({
+      data: {
+        title,
+        description,
+        imageSrc: validUrls, // Use the validated URLs array
+        category,
+        roomCount,
+        guestCount,
+        locationValues: location.value,
+        price: parseInt(price, 10),
+        userId: currentUser.id,
+      },
+    });
+
+    console.log("Final listing created:", listing);
+    return NextResponse.json(listing);
+    
+  } catch (error: unknown) {
+    
+    if (error instanceof Error) {
+      return NextResponse.json({ 
+        error: error.message || "Failed to create listing" 
+      }, { status: 500 });
+    }
+
+    return NextResponse.json({ 
+      error: "An unknown error occurred" 
+    }, { status: 500 });
+  }
 }

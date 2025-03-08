@@ -1,7 +1,7 @@
 'use client';
 
 import axios from "axios";
-import { useRouter } from "next/navigation";                        
+import { useRouter } from "next/navigation";                         
 import { useCallback, useMemo } from "react";
 import toast from "react-hot-toast";
 import { SafeUser } from "../types";
@@ -31,24 +31,27 @@ const useFavorite = ({ listingId, currentUser }: IUseFavorite) => {
     
         try {
             let request;
+            let toastMessage = '';
+
             if (hasFavorited) {
-                console.log("Sending DELETE request for listingId:", listingId);
+       
                 request = () => axios.delete(`/api/favorites/${listingId}`);
+                toastMessage = 'Removed from favorites';
             } else {
-                console.log("Sending POST request for listingId:", listingId);
+              
                 request = () => axios.post(`/api/favorites/${listingId}`);
+                toastMessage = 'Added to favorites';
             }
     
             await request();
             console.log("Request successful.");
             router.refresh();
-            toast.success("Success");
+            toast.success(toastMessage);  
         } catch (error: any) {
             console.error("API error:", error?.response?.data || error.message);
             toast.error(error?.response?.data?.message || "Something went wrong.");
         }
     }, [currentUser, hasFavorited, listingId, loginModal, router]);
-    
 
     return {
         hasFavorited,

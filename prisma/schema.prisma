@@ -25,20 +25,61 @@ model User {
   updatedAt      DateTime  @updatedAt
   favoriteIds    String[]  @db.ObjectId
   isBlocked      Boolean   @default(false)
-  role           String    @default("user") // Example: "user", "host"
-
+    isRestricted   Boolean   @default(false)
+  role           String    @default("user")
+    about         String? 
   accounts       Account[]
   listings       Listing[]
   reservations   Reservation[]
+
+    Notification Notification[]
+
+    CancelledReservation CancelledReservation[]
+
+    conversationIds    String[]  @db.ObjectId
+    conversations Conversation[] @relation(fields:[conversationIds], references: [id])
+    seenMessageId      String[]  @db.ObjectId
+    seenMessages  Message[]  @relation("Seen",fields:[seenMessageId], references: [id])
+    messages Message[]
+    reviews     Review[]
+    wallet         Wallet?  
+  walletId       String?   @db.ObjectId
 }
+
+model Conversation {
+    id               String    @id @default(auto()) @map("_id") @db.ObjectId
+    createdAt        DateTime  @default(now())
+    lastMessageAt    DateTime  @default(now())
+    name             String?
+    isGroup          Boolean?
+    messagesId       String[]  @db.ObjectId
+    messages         Message[]
+    userIds          String[]  @db.ObjectId
+    users            User[]    @relation(fields: [userIds], references: [id])
+}
+
+model Message {
+    id               String    @id @default(auto()) @map("_id") @db.ObjectId
+    body             String?
+    image            String?
+    voice            String?   // Added field for voice note URL
+    createdAt        DateTime  @default(now())
+    seenIds          String[]  @db.ObjectId
+    seen             User[]    @relation("Seen", fields: [seenIds], references: [id])
+    conversationId   String    @db.ObjectId
+    conversation     Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+    senderId         String    @db.ObjectId
+    sender           User      @relation(fields: [senderId], references: [id], onDelete: Cascade)
+}
+
 
 // email verification
 
 model VerificationToken{
     id             String    @id @default(auto()) @map("_id") @db.ObjectId
-    email  String
-    token String
-    expires DateTime
+    email          String
+    token          String
+    expires        DateTime
 
     @@unique([email,token])
  
@@ -68,19 +109,22 @@ model Account {
 // listing
 
 model Listing {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  title       String
-  description String
-  imageSrc    String
-  createdAt   DateTime @default(now())
-  category    String
-  roomCount   Int
-  guestCount  Int
-  locationValues String
-  userId      String?  @db.ObjectId
-  price       Int
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  title           String
+  description     String
+ imageSrc         String[] 
+  createdAt       DateTime @default(now())
+  category        String
+  roomCount       Int
+  guestCount      Int
+  locationValues  String
+  userId          String?  @db.ObjectId
+  price           Int
+  offerPrice      Int?
   user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   reservations Reservation[]
+  reviews     Review[]
+  CancelledReservation CancelledReservation[]
 }
 
 
@@ -93,10 +137,63 @@ model Reservation {
   startDate   DateTime
   endDate     DateTime
   totalPrice  Int
-  createdAt   DateTime    @default(now())
-
+  orderId     String?    // Make this nullable
+  paymentId   String?    // ✅ Store Razorpay payment ID (optional)
+  status      String     // ✅ Track payment status ('success', 'failed', 'pending')
+  createdAt   DateTime   @default(now())
+  reviews     Review[]
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   listing     Listing     @relation(fields: [listingId], references: [id], onDelete: Cascade)
+}
+
+model CancelledReservation {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  reservationId String    @db.ObjectId
+  userId        String    @db.ObjectId
+  listingId     String    @db.ObjectId
+  startDate     DateTime
+  endDate       DateTime
+  totalPrice    Int
+  cancelledAt   DateTime  @default(now())
+  cancelledBy   String    @db.ObjectId
+  reason        String?
+
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing       Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+}
+model Wallet {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String    @unique @db.ObjectId
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance    Float     @default(0.0) 
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+model Review {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
+  listingId   String   @db.ObjectId
+  reservationId String?   @db.ObjectId
+  rating      Int      @default(0) 
+  title       String
+  content     String
+  createdAt   DateTime @default(now())
+  helpfulCount Int     @default(0)
+  verified    Boolean  @default(false)
+  reservation   Reservation? @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing     Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  message   String
+  type      String
+  createdAt DateTime @default(now())
+  isRead    Boolean  @default(false)
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // admin
@@ -109,3 +206,6 @@ model Admin {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
+
+
+

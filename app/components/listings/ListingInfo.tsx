@@ -1,21 +1,22 @@
 'use client'
 
-import useCountries from "@/app/hooks/useCountries"
+import { useState, useEffect } from 'react'
+import useLocations from "@/app/hooks/useLocations"
 import { SafeUser } from "@/app/types"
 import { IconType } from "react-icons"
 import Avatar from "../Avatar"
 import ListingCategory from "./ListingCategory"
 import dynamic from "next/dynamic"
 
-const Map = dynamic(()=>import('../Map'),{
-    ssr:false
+const Map = dynamic(() => import('../Map'), {
+    ssr: false
 })
 
 interface ListingInfoProps {
-    user: SafeUser | null; // Changed to allow null
+    user: SafeUser | null;
     description: string;
     guestCount: number;
-    roomCount: number; // Changed from string to number to match schema
+    roomCount: number;
     category: {
         icon: IconType;
         label: string;
@@ -32,8 +33,24 @@ function ListingInfo({
     category,
     locationValues
 }: ListingInfoProps) {
-    const { getByValues } = useCountries()
-    const coordinates = getByValues(locationValues)?.latlng
+    const { searchLocations } = useLocations();
+    const [coordinates, setCoordinates] = useState<number[] | undefined>(undefined);
+
+    useEffect(() => {
+        const fetchLocationCoordinates = async () => {
+            try {
+                const locations = await searchLocations(locationValues);
+                if (locations.length > 0 && locations[0].coordinates) {
+                    setCoordinates(locations[0].coordinates);
+                }
+            } catch (error) {
+                console.error('Error fetching location coordinates:', error);
+                setCoordinates(undefined);
+            }
+        };
+
+        fetchLocationCoordinates();
+    }, [locationValues, searchLocations]);
 
     return (
         <div className="col-span-4 flex flex-col gap-8">
@@ -44,25 +61,26 @@ function ListingInfo({
                 </div>
                 <div className="flex flex-row items-center gap-4 font-light text-neutral-500">
                     <div>
-                        {roomCount} {roomCount === 1 ? 'room' : 'rooms'}
+                        {category?.label === "car" || category?.label === "Bike"
+                            ? `${roomCount} ${roomCount === 1 ? 'seat' : 'seats'}`
+                            : `${roomCount} ${roomCount === 1 ? 'room' : 'rooms'}`}
                     </div>
-                 
                 </div>
             </div>
             <hr />
-        {category &&(
-            <ListingCategory
-            icon={category.icon}
-            label={category.label}
-            description={category.description}
-            />
-         )}
-         <hr />
-         <div className="text-lg font-light text-neutral-500">
-            {description}
-         </div>
-         <hr />
-        <Map center={coordinates}/>
+            {category && (
+                <ListingCategory
+                    icon={category.icon}
+                    label={category.label}
+                    description={category.description}
+                />
+            )}
+            <hr />
+            <div className="text-lg font-light text-neutral-500">
+                {description}
+            </div>
+            <hr />
+            <Map center={coordinates} />
         </div>
     )
 }

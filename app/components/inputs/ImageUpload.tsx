@@ -1,63 +1,150 @@
-"use client";
-
 import { CldUploadWidget } from "next-cloudinary";
 import Image from "next/image";
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { FcOldTimeCamera } from "react-icons/fc";
+import { X } from "lucide-react";
 
 declare global {
   var cloudinary: any;
 }
 
 interface ImageUploadProps {
-  onChange: (value: string) => void;
-  value: string;
+  onChange: (value: string[]) => void;
+  value: string[];
+  maxImages?: number;
 }
 
-function ImageUpload({ onChange, value }: ImageUploadProps) {
-  console.log(value);
+const ImageUpload = ({
+  onChange,
+  value = [],
+  maxImages = 5,
+}: ImageUploadProps) => {
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [error, setError] = useState<string>("");
+
+  useEffect(() => {
+    if (Array.isArray(value)) {
+      setImageUrls(value);
+    }
+  }, [value]);
 
   const handleUpload = useCallback(
     (result: any) => {
-      console.log("Uploaded Image Result:", result);
-      onChange(result.info.secure_url);
+      const extractUrls = (uploadResult: any): string[] => {
+        if (!uploadResult) return [];
+        if (Array.isArray(uploadResult)) {
+          return uploadResult
+            .filter((item) => item.info?.secure_url)
+            .map((item) => item.info.secure_url);
+        } else if (uploadResult.info?.secure_url) {
+          return [uploadResult.info.secure_url];
+        }
+        return [];
+      };
+
+      const newUrls = extractUrls(result);
+      setImageUrls((prev) => {
+        const combinedUrls = [...prev, ...newUrls].slice(0, maxImages);
+        
+        // Set error if not enough images
+        if (combinedUrls.length < maxImages) {
+          setError(`Please upload ${maxImages - combinedUrls.length} more images`);
+        } else {
+          setError("");
+        }
+        
+        onChange(combinedUrls);
+        return combinedUrls;
+      });
     },
-    [onChange]
+    [maxImages, onChange]
   );
 
+  const handleRemoveImage = useCallback(
+    (indexToRemove: number) => {
+      setImageUrls((prev) => {
+        const updated = prev.filter((_, index) => index !== indexToRemove);
+        // Update error message when image is removed
+        setError(`Please upload ${maxImages - updated.length} more images`);
+        onChange(updated);
+        return updated;
+      });
+    },
+    [onChange, maxImages]
+  );
+
+  const remainingSlots = maxImages - imageUrls.length;
+
   return (
-    <CldUploadWidget
-      onSuccess={handleUpload}
-      uploadPreset="Rental"
-      options={{
-        maxFiles: 1,
-      }}
-    >
-      {({ open }) => (
-        <div
-          onClick={() => {
-            console.log("Opening Cloudinary Widget");
-            open?.();
-          }}
-          className="relative cursor-pointer hover:opacity-70 transition border-dashed border-2 border-neutral-300 flex flex-col justify-center items-center gap-4 text-neutral-600 p-4"
-        >
-          <FcOldTimeCamera size={50} />
-          <div className="font-semibold text-lg">Click to upload</div>
-          {value && (
-            <div className="relative w-full h-64 overflow-hidden">
-              <Image
-                alt="Uploaded Image"
-                src={value}
-                layout="fill" 
-                objectFit="cover" 
-                className="absolute inset-0" 
-              />
-            </div>
-          )}
+    <div className="space-y-4">
+      {error && (
+        <div className="text-red-500 text-sm font-medium mb-2">
+          {error}
         </div>
       )}
-    </CldUploadWidget>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {imageUrls.map((url, index) => (
+          <div key={`${url}-${index}`} className="relative group">
+            <div className="relative w-full h-64 overflow-hidden rounded-lg">
+              <Image
+                alt={`Uploaded Image ${index + 1}`}
+                src={url}
+                layout="fill"
+                objectFit="cover"
+                className="absolute inset-0"
+              />
+            </div>
+            <button
+              onClick={() => handleRemoveImage(index)}
+              className="absolute top-2 right-2 p-1.5 bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <X className="h-4 w-4 text-gray-500" />
+            </button>
+          </div>
+        ))}
+
+        {remainingSlots > 0 ? (
+          <CldUploadWidget
+            onSuccess={handleUpload}
+            uploadPreset="Rental"
+            options={{
+              maxFiles: remainingSlots,
+              multiple: true,
+              sources: ["local", "camera", "url"],
+              clientAllowedFormats: ["jpg", "jpeg", "png", "gif", "webp"],
+              maxFileSize: 10000000,
+              resourceType: "image",
+            }}
+          >
+            {({ open }) => (
+              <div
+                onClick={() => open?.()}
+                className="relative cursor-pointer hover:opacity-70 transition border-dashed border-2 border-neutral-300 flex flex-col justify-center items-center gap-4 text-neutral-600 p-4 h-64 rounded-lg"
+              >
+                <FcOldTimeCamera size={50} />
+                <div className="font-semibold text-lg text-center">
+                  Click to upload
+                  <p className="text-sm font-normal">
+                    {imageUrls.length} of {maxImages} images uploaded
+                    <br />
+                    {remainingSlots > 0 && (
+                      <span className="text-red-500">
+                        You must upload {remainingSlots} more {remainingSlots === 1 ? "image" : "images"}
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+            )}
+          </CldUploadWidget>
+        ) : (
+          <div className="text-green-500 text-sm font-medium">
+            Maximum number of images ({maxImages}) reached
+          </div>
+        )}
+      </div>
+    </div>
   );
-}
+};
 
 export default ImageUpload;

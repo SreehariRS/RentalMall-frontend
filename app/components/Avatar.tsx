@@ -1,20 +1,22 @@
-'use client';
+"use client";
 
 import Image from "next/image";
 
 interface AvatarProps {
-  src: string |null |undefined;
+  src: string | null | undefined;
+  size?: number;
+  className?: string;
 }
 
-function Avatar({ src }: AvatarProps) {
+function Avatar({ src, size = 30, className }: AvatarProps) { 
   return (
-    <Image
-      className="rounded-full"
-      height={30}
-      width={30}
+<Image
+      className={`rounded-full ${className || ""}`}
+      height={size}
+      width={size}
       alt="Avatar"
-      src={src || "/images/profile.png"}
-    />
+      src={src || "/images/profile.png"} />
+    
   );
 }
 

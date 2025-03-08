@@ -1,5 +1,5 @@
 "use client";
-import { AiFillGithub } from "react-icons/ai";
+import { AiFillGithub, AiFillEye, AiFillEyeInvisible } from "react-icons/ai";
 import { FcGoogle } from "react-icons/fc";
 import { useCallback, useState } from "react";
 import { FieldValues, SubmitHandler, useForm } from "react-hook-form";
@@ -16,11 +16,12 @@ import axios from "axios";
 
 function LoginModal() {
     const router = useRouter();
-
-    const registalModel = useRegisterModal();
+    const registerModal = useRegisterModal();
     const loginModal = useLoginModal();
 
     const [isLoading, setIsLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+
     const {
         register,
         handleSubmit,
@@ -31,9 +32,8 @@ function LoginModal() {
             password: "",
         },
     });
-    const onSubmit: SubmitHandler<FieldValues> = async (data) => {
-        console.log(data);
 
+    const onSubmit: SubmitHandler<FieldValues> = async (data) => {
         setIsLoading(true);
 
         signIn("credentials", {
@@ -41,12 +41,12 @@ function LoginModal() {
             redirect: false,
         }).then(async (callback) => {
             setIsLoading(false);
-            console.log(callback);
+
             if (callback?.ok) {
                 try {
                     await axios.post("/api/auth/jwtCreation", { email: data.email });
                 } catch (error) {
-                    console.log(error);
+                    console.error(error);
                 }
 
                 toast.success("Logged in");
@@ -63,19 +63,40 @@ function LoginModal() {
             }
         });
     };
+
     const toggle = useCallback(() => {
         loginModal.onClose();
-        registalModel.onOpen();
-    }, [loginModal, registalModel]);
+        registerModal.onOpen();
+    }, [loginModal, registerModal]);
 
     const bodyContent = (
         <div className="flex flex-col gap-4">
-            <Heading title="welcome back" subtitle="login to your account!" />
-            <Input id="email" disabled={isLoading} register={register} errors={errors} required label={"Email"} />
+            <Heading title="Welcome back" subtitle="Login to your account!" />
+            
+            {/* Email Input */}
+            <Input id="email" disabled={isLoading} register={register} errors={errors} required label="Email" />
 
-            <Input id="password" disabled={isLoading} register={register} errors={errors} required label={"Password"} />
+            {/* Password Input with Eye Icon */}
+            <div className="relative">
+                <Input 
+                    id="password" 
+                    type={showPassword ? "text" : "password"} 
+                    disabled={isLoading} 
+                    register={register} 
+                    errors={errors} 
+                    required 
+                    label="Password" 
+                />
+                <div 
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                >
+                    {showPassword ? <AiFillEyeInvisible size={20} /> : <AiFillEye size={20} />}
+                </div>
+            </div>
         </div>
     );
+
     const footerContent = (
         <div className="flex flex-col gap-4 mt-3">
             <hr />
@@ -91,6 +112,7 @@ function LoginModal() {
             </div>
         </div>
     );
+
     return (
         <Modal
             disabled={isLoading}

@@ -1,111 +1,171 @@
 "use client";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
-import { getProfile, getFavoriteListings } from "../../../services/userApi";
-import { MapPin, Star, Settings, Shield, BookOpen, Heart, Mail, Phone, Calendar } from "lucide-react";
-import LoadingSpinner from "../../components/ui/Spinner";
-
+import type React from "react";
+import { useEffect, useState } from "react";
+import { getProfile, getFavoriteListings, updateProfileImage, updateAbout } from "../../../services/userApi";
+import { MapPin, Settings, Shield, Heart, Mail, Phone, Calendar, CameraIcon, Edit, Check, X } from "lucide-react";
+import { toast } from "react-hot-toast";
+import Loader from "@/app/components/Loader";
 
 const UserProfile = () => {
-  const router = useRouter(); 
+    const router = useRouter();
     const [user, setUser] = useState<any>(null);
     const [favoriteListings, setFavoriteListings] = useState<any[]>([]);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const [isLoading, setIsLoading] = useState(true); // Loading state
+    const [isLoading, setIsLoading] = useState(true);
+    const [isEditingAbout, setIsEditingAbout] = useState(false);
+    const [editedAbout, setEditedAbout] = useState("");
 
     const toggleDropdown = () => {
         setIsDropdownOpen(!isDropdownOpen);
     };
-    const handleChangePassword = () => {
-      router.push('/user/changePassword');
-      setIsDropdownOpen(false); // Close dropdown after clicking
-  };
 
-    // Fetch user profile and favorite listings
+    const handleChangePassword = () => {
+        router.push("/user/changePassword");
+        setIsDropdownOpen(false);
+    };
+
+    const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            const allowedTypes = ["image/jpeg", "image/png", "image/gif"];
+            const maxSize = 5 * 1024 * 1024; // 5MB
+
+            if (!allowedTypes.includes(file.type)) {
+                toast.error("Invalid file type. Please upload JPEG, PNG, or GIF.");
+                return;
+            }
+
+            if (file.size > maxSize) {
+                toast.error("File size exceeds 5MB limit.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
+
+            try {
+                setIsLoading(true);
+                const response = await fetch(
+                    `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
+                    {
+                        method: "POST",
+                        body: formData,
+                    }
+                );
+                const data = await response.json();
+
+                const updateResult = await updateProfileImage(data.secure_url);
+
+                if (updateResult.status) {
+                    setUser((prevUser: any) => ({
+                        ...prevUser,
+                        image: data.secure_url,
+                    }));
+                    toast.success("Profile image updated successfully");
+                } else {
+                    toast.error(updateResult.message || "Failed to update profile image");
+                }
+            } catch (error) {
+                console.error("Image upload failed", error);
+                toast.error("Failed to upload image");
+            } finally {
+                setIsLoading(false);
+            }
+        }
+    };
+
+    const handleSaveAbout = async () => {
+        try {
+            const result = await updateAbout(editedAbout);
+            if (result.status) {
+                setUser((prev: any) => ({ ...prev, about: editedAbout }));
+                setIsEditingAbout(false);
+                toast.success("About text updated successfully");
+            } else {
+                toast.error(result.message);
+            }
+        } catch (error) {
+            toast.error("Failed to update about text");
+        }
+    };
+
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // Fetch profile
                 const profileData = await getProfile();
                 if (profileData && !profileData.error) {
-                    setUser(profileData); // Ensure it matches the backend response
+                    setUser(profileData);
+                    setEditedAbout(profileData.about || "");
                 } else {
                     console.error("Error fetching profile:", profileData.message || "Unknown error");
                 }
-
-                // // Fetch favorite listings
-                // const favoritesData = await getFavoriteListings();
-                // console.log("Fetched favorite listings:", favoritesData); // Debug log
-                // if (favoritesData && !favoritesData.error) {
-                //   setFavoriteListings(favoritesData);
-                // } else {
-                //   console.error("Error fetching favorite listings:", favoritesData.message || "Unknown error");
-                // }
             } catch (error) {
                 console.error("Error fetching data:", error);
             } finally {
-                setIsLoading(false); // End loading
+                setIsLoading(false);
             }
         };
-
         fetchData();
     }, []);
 
-    // Display loading state
-    if (isLoading) {
-        return <LoadingSpinner/>;
-    }
-
-    // If no user data, display an error
-    if (!user) {
-        return <p>User data not found.</p>;
-    }
+    if (isLoading) return  <Loader/>;
+    if (!user) return <p>User data not found.</p>;
 
     return (
-        <div className="max-w-4xl mx-auto p-6 bg-gray-50">
-            {/* Header Section */}
-            <div className="bg-white rounded-xl p-8 shadow-sm mb-6 relative">
-                <div className="flex justify-between items-start mb-6">
-                    <div className="flex gap-6 items-start">
-                        <div className="w-32 h-32 rounded-full overflow-hidden">
+        <div className="max-w-5xl mx-auto p-6 bg-white min-h-screen">
+            <div className="mb-8">
+                <div className="flex justify-between items-start">
+                    <div className="flex items-center space-x-6">
+                        <div className="relative w-32 h-32 rounded-full overflow-hidden group">
                             <img
                                 src={user.image || "/images/profile.png"}
                                 alt={user.name || "User"}
                                 className="w-full h-full object-cover"
                             />
+                            <label className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                                <CameraIcon className="w-8 h-8 text-white" />
+                                <input
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/gif"
+                                    className="hidden"
+                                    onChange={handleImageUpload}
+                                />
+                            </label>
                         </div>
                         <div>
-                            <h1 className="text-3xl font-bold mb-2">{user.name || "Anonymous"}</h1>
-                            <div className="flex flex-col gap-2 text-gray-600">
-                                <div className="flex items-center gap-2">
-                                    <MapPin className="w-4 h-4" />
-                                    {user.location || "Location not provided"}
+                            <h1 className="text-4xl font-bold text-gray-900 mb-2">{user.name || "Anonymous"}</h1>
+                            <div className="flex items-center text-gray-600 space-x-4">
+                                <div className="flex items-center">
+                                    <MapPin className="w-4 h-4 mr-1" />
+                                    <span>{user.location || "Location not provided"}</span>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <Calendar className="w-4 h-4" />
-                                    Member since {new Date(user.createdAt).toLocaleDateString()}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Shield className="w-4 h-4" />
-                                    Role: {user.role}
+                                <div className="flex items-center">
+                                    <Calendar className="w-4 h-4 mr-1" />
+                                    <span>Member since {new Date(user.createdAt).toLocaleDateString()}</span>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div className="relative">
-                        <button className="p-2 hover:bg-gray-100 rounded-full" onClick={toggleDropdown}>
+                        <button
+                            className="p-2 hover:bg-gray-100 rounded-full transition-colors duration-200"
+                            onClick={toggleDropdown}
+                            aria-label="Settings"
+                        >
                             <Settings className="w-6 h-6 text-gray-600" />
                         </button>
                         {isDropdownOpen && (
-                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border">
+                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-10">
                                 <ul className="py-2">
                                     <li>
-                                    <button
-                            className="block w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100"
-                            onClick={handleChangePassword} // Update this line
-                        >
-                            Change Password
-                        </button>
+                                        <button
+                                            className="block w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100"
+                                            onClick={handleChangePassword}
+                                        >
+                                            Change Password
+                                        </button>
                                     </li>
                                     <li>
                                         <button
@@ -120,52 +180,91 @@ const UserProfile = () => {
                         )}
                     </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 py-4 border-t border-b">
-                    <div className="flex items-center gap-3">
-                        <Heart className="w-5 h-5 text-rose-600" />
-                        <div>
-                            <p className="font-medium">{favoriteListings.length} Favorites</p>
-                        </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="bg-gray-50 p-4 rounded-lg flex items-center space-x-3">
+                    <Heart className="w-6 h-6 text-rose-500" />
+                    <div>
+                        <p className="text-lg font-semibold">{favoriteListings.length}</p>
+                        <p className="text-gray-600">Favorites</p>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <Mail className="w-5 h-5 text-gray-600" />
-                        <div>
-                            <p className="font-medium">{user.email || "Not Provided"}</p>
-                            <p className="text-sm text-gray-500">Email Verified</p>
-                        </div>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg flex items-center space-x-3">
+                    <Mail className="w-6 h-6 text-blue-500" />
+                    <div>
+                        <p className="text-lg font-semibold">{user.email || "Not Provided"}</p>
+                        <p className="text-gray-600">Email Verified</p>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <Phone className="w-5 h-5 text-gray-600" />
-                        <div>
-                            <p className="font-medium">{user.phone || "Not Provided"}</p>
-                            <p className="text-sm text-gray-500">{user.phone ? "Phone Verified" : "Not Verified"}</p>
-                        </div>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg flex items-center space-x-3">
+                    <Phone className="w-6 h-6 text-green-500" />
+                    <div>
+                        <p className="text-lg font-semibold">{user.phone || "Not Provided"}</p>
+                        <p className="text-gray-600">{user.phone ? "Phone Verified" : "Not Verified"}</p>
                     </div>
                 </div>
             </div>
 
-            {/* About Section */}
-            <div className="bg-white rounded-xl p-8 shadow-sm mb-6">
-                <h2 className="text-2xl font-bold mb-4">About</h2>
-                <p className="text-gray-600">{user.about || "No bio available."}</p>
+            <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8">
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-2xl font-bold text-gray-900">About</h2>
+                    {!isEditingAbout ? (
+                        <button
+                            onClick={() => setIsEditingAbout(true)}
+                            className="text-blue-600 hover:text-blue-800 transition-colors duration-200"
+                            aria-label="Edit about section"
+                        >
+                            <Edit className="w-5 h-5" />
+                        </button>
+                    ) : (
+                        <div className="flex space-x-2">
+                            <button
+                                onClick={handleSaveAbout}
+                                className="text-green-600 hover:text-green-800 transition-colors duration-200"
+                                aria-label="Save changes"
+                            >
+                                <Check className="w-5 h-5" />
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setEditedAbout(user.about || "");
+                                    setIsEditingAbout(false);
+                                }}
+                                className="text-red-600 hover:text-red-800 transition-colors duration-200"
+                                aria-label="Cancel editing"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                    )}
+                </div>
+                {!isEditingAbout ? (
+                    <p className="text-gray-700">{user.about || "No bio available."}</p>
+                ) : (
+                    <textarea
+                        value={editedAbout}
+                        onChange={(e) => setEditedAbout(e.target.value)}
+                        className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                        rows={4}
+                        placeholder="Tell us about yourself..."
+                    />
+                )}
             </div>
 
-            {/* Past Favorites
-      <div className="bg-white rounded-xl p-8 shadow-sm">
-        <h2 className="text-2xl font-bold mb-4">Favorite Listings</h2>
-        {favoriteListings.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {favoriteListings.map((listing: any, index: number) => (
-              <div key={index} className="border rounded-lg p-4">
-                <h3 className="font-semibold mb-2">{listing.title}</h3>
-                <p className="text-gray-600">{listing.description}</p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p>No favorite listings yet.</p>
-        )}
-      </div> */}
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">Additional Information</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-center space-x-3">
+                        <Shield className="w-5 h-5 text-gray-600" />
+                        <div>
+                            <p className="font-medium">Role</p>
+                            <p className="text-gray-600">{user.role}</p>
+                        </div>
+                    </div>
+                    {/* Add more user information here as needed */}
+                </div>
+            </div>
         </div>
     );
 };
