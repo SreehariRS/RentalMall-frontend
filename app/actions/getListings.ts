@@ -1,5 +1,4 @@
 import prisma from "@/app/libs/prismadb";
-import { gte } from "lodash";
 
 export interface IlistingsParams {
     userId?: string;
@@ -14,7 +13,7 @@ export interface IlistingsParams {
 export default async function getListings(params: IlistingsParams) {
     try {
         const { userId, roomCount, guestCount, locationValue, startDate, endDate, category } = params;
-        let query: any = {};
+            const query: any = {};
 
         if (userId) {
             query.userId = userId;
