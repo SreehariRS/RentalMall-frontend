@@ -9,7 +9,7 @@ import toast from "react-hot-toast";
 
 interface WalletClientProps {
   currentUser?: SafeUser | null;
-  initialWalletBalance: number | null; // Add prop for initial balance
+  initialWalletBalance: number | null;
 }
 
 function WalletClient({ currentUser, initialWalletBalance }: WalletClientProps) {
