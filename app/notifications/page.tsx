@@ -7,6 +7,9 @@ import useNotificationStore from '@/app/hooks/useNotifications'
 import { pusherClient } from "@/app/libs/pusher"
 import { useSession } from "next-auth/react"
 
+// Force dynamic rendering to allow server-side dependencies like headers()
+export const dynamic = 'force-dynamic';
+
 interface Host {
   name: string;
   image: string;
@@ -40,33 +43,27 @@ const NotificationPage = () => {
 
     fetchNotifications();
     
-    // Poll for new notifications every minute as a fallback
     const interval = setInterval(fetchNotifications, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  // Pusher subscription for real-time notifications
   useEffect(() => {
     if (!userId) return;
     
-    // Subscribe to user's personal notification channel
     const channel = `user-${userId}-notifications`;
     pusherClient.subscribe(channel);
     
-    // Handle new notification
     const newNotificationHandler = (notification: Notification) => {
       setNotifications((current) => [notification, ...current]);
       incrementCount();
     };
     
-    // Handle notification removal
     const removedNotificationHandler = (notificationId: string) => {
       setNotifications((current) => 
         current.filter(notification => notification.id !== notificationId)
       );
     };
     
-    // Bind the events
     pusherClient.bind('notification:new', newNotificationHandler);
     pusherClient.bind('notification:remove', removedNotificationHandler);
     
@@ -81,7 +78,7 @@ const NotificationPage = () => {
     try {
       await axios.delete(`/api/notifications/${id}`);
       setNotifications(notifications.filter((notification) => notification.id !== id));
-      decrementCount(); // Decrement the notification count
+      decrementCount();
     } catch (error) {
       console.error('Failed to remove notification:', error);
     }
