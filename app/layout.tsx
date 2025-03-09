@@ -26,6 +26,9 @@ export const metadata: Metadata = {
   description: "Select your Rental",
 };
 
+// Add this line to make the entire app dynamic
+export const dynamic = "force-dynamic";
+
 export default async function RootLayout({
   children,
 }: {
@@ -39,11 +42,11 @@ export default async function RootLayout({
         <AuthProvider>
           <TosterProviders />
           <RentModal />
-          <SearchModal/>
+          <SearchModal />
           <LoginModal />
           <RegisterModal />
           <NavbarWrapper currentUser={currentUser}>
-            <ActiveStatus/>
+            <ActiveStatus />
             {children}
           </NavbarWrapper>
         </AuthProvider>
