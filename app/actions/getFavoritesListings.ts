@@ -23,7 +23,7 @@ export default async function getFavoriteListings() {
         }));
         
         return safeFavorites;
-    } catch (error: unknown) {
+    } catch {
         throw new Error("Failed to fetch favorite listings");
     }
 }

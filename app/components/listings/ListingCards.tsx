@@ -28,6 +28,12 @@ interface LocationInfo {
   region: string;
 }
 
+// Define a type for reviews
+interface Review {
+  rating: number;
+  [key: string]: unknown; // Allow for additional properties if needed
+}
+
 const ListingCards = ({
   data,
   reservation,
@@ -76,9 +82,9 @@ const ListingCards = ({
     const fetchReviews = async () => {
       try {
         const response = await axios.get(`/api/reviews?listingId=${data.id}`);
-        const reviews = response.data;
+        const reviews: Review[] = response.data; // Type the response data as Review[]
         if (reviews.length > 0) {
-          const avgRating = reviews.reduce((acc: number, review: any) => acc + review.rating, 0) / reviews.length;
+          const avgRating = reviews.reduce((acc: number, review: Review) => acc + review.rating, 0) / reviews.length;
           setAverageRating(avgRating);
         } else {
           setAverageRating(0); // No reviews yet
@@ -147,9 +153,9 @@ const ListingCards = ({
     if (rating === null || rating === 0) return null; // Hide if no rating or loading
     return (
       <div className="flex items-center gap-1.5">
-<span className="text-black drop-shadow-sm">★</span>
-<span className="font-medium text-gray-700">{rating.toFixed(1)}</span>
-    </div>
+        <span className="text-black drop-shadow-sm">★</span>
+        <span className="font-medium text-gray-700">{rating.toFixed(1)}</span>
+      </div>
     );
   };
 

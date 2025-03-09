@@ -8,6 +8,9 @@ import { MapPin, Settings, Shield, Heart, Mail, Phone, Calendar, CameraIcon, Edi
 import { toast } from "react-hot-toast";
 import Loader from "@/app/components/Loader";
 
+// Add this line to make the page dynamic
+export const dynamic = "force-dynamic";
+
 // Define interfaces for better type safety
 interface User {
   name?: string;
@@ -78,10 +81,7 @@ const UserProfile = () => {
       const updateResult = await updateProfileImage(data.secure_url);
 
       if (updateResult.status) {
-        setUser((prevUser) => prevUser ? ({
-          ...prevUser,
-          image: data.secure_url,
-        }) : null);
+        setUser((prevUser) => (prevUser ? { ...prevUser, image: data.secure_url } : null));
         toast.success("Profile image updated successfully");
       } else {
         toast.error(updateResult.message || "Failed to update profile image");
@@ -98,7 +98,7 @@ const UserProfile = () => {
     try {
       const result = await updateAbout(editedAbout);
       if (result.status) {
-        setUser((prev) => prev ? ({ ...prev, about: editedAbout }) : null);
+        setUser((prev) => (prev ? { ...prev, about: editedAbout } : null));
         setIsEditingAbout(false);
         toast.success("About text updated successfully");
       } else {

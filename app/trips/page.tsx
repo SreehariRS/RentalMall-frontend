@@ -1,9 +1,12 @@
 import EmptyState from "../components/EmptyState";
 import getCurrentUser from "../actions/getCurrentUser";
-import getReservations from "../actions/getReservation"; // Import as default
-import { getCancelledReservations } from "../actions/getReservation"; // Named import
+import getReservations from "../actions/getReservation"; 
+import { getCancelledReservations } from "../actions/getReservation"; 
 import { getWalletBalance } from "../actions/getWallet";
 import TripsClient from "./TripsClient";
+
+// Add this line to make the page dynamic
+export const dynamic = "force-dynamic";
 
 const TripsPage = async () => {
   const currentUser = await getCurrentUser();
@@ -17,7 +20,7 @@ const TripsPage = async () => {
   }
 
   const [reservations, cancelledReservations] = await Promise.all([
-    getReservations({ userId: currentUser.id }), // Use the default import
+    getReservations({ userId: currentUser.id }),
     getCancelledReservations({ userId: currentUser.id }),
   ]);
 

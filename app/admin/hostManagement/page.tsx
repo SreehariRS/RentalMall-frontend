@@ -3,6 +3,9 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Sidebar from "../../components/Sidebar";
 
+// Ensure this line is present to make the page dynamic
+export const dynamic = "force-dynamic";
+
 interface Host {
     id: string;
     name: string;
@@ -18,9 +21,17 @@ function HostManagementPage() {
     const [message, setMessage] = useState<string>("");
 
     useEffect(() => {
+        const token = localStorage.getItem("adminToken");
+        if (!token) {
+            window.location.href = "/admin"; // Redirect to login if not authenticated
+            return;
+        }
+
         const fetchHosts = async () => {
             try {
-                const response = await axios.get("/api/hosts");
+                const response = await axios.get("/api/hosts", {
+                    headers: { Authorization: `Bearer ${token}` }, // Pass token explicitly
+                });
                 setHosts(response.data);
             } catch {
                 setError("Failed to load hosts");
@@ -32,8 +43,13 @@ function HostManagementPage() {
     }, []);
 
     const toggleRestriction = async (hostId: string, isRestricted: boolean) => {
+        const token = localStorage.getItem("adminToken");
         try {
-            await axios.patch("/api/hosts", { hostId, isRestricted: !isRestricted });
+            await axios.patch(
+                "/api/hosts",
+                { hostId, isRestricted: !isRestricted },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
             setHosts(prevHosts =>
                 prevHosts.map(host =>
                     host.id === hostId ? { ...host, isRestricted: !isRestricted } : host
@@ -46,13 +62,13 @@ function HostManagementPage() {
 
     const handleSendMessage = async (hostId: string) => {
         if (!message.trim()) return;
-
+        const token = localStorage.getItem("adminToken");
         try {
-            await axios.post("/api/notifications", {
-                userId: hostId,
-                message,
-                type: "info"
-            });
+            await axios.post(
+                "/api/notifications",
+                { userId: hostId, message, type: "info" },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
             setMessage(""); // Clear input
             setMessageHostId(null); // Close input
         } catch (error) {

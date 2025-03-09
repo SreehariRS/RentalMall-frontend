@@ -1,12 +1,8 @@
-import { CldUploadWidget } from "next-cloudinary";
+import { CldUploadWidget, type CloudinaryUploadWidgetResults } from "next-cloudinary";
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { FcOldTimeCamera } from "react-icons/fc";
 import { X } from "lucide-react";
-
-declare global {
-  var cloudinary: any;
-}
 
 interface ImageUploadProps {
   onChange: (value: string[]) => void;
@@ -29,30 +25,25 @@ const ImageUpload = ({
   }, [value]);
 
   const handleUpload = useCallback(
-    (result: any) => {
-      const extractUrls = (uploadResult: any): string[] => {
-        if (!uploadResult) return [];
-        if (Array.isArray(uploadResult)) {
-          return uploadResult
-            .filter((item) => item.info?.secure_url)
-            .map((item) => item.info.secure_url);
-        } else if (uploadResult.info?.secure_url) {
-          return [uploadResult.info.secure_url];
-        }
-        return [];
-      };
+    (result: CloudinaryUploadWidgetResults) => {
+      // Ensure the result has the expected structure
+      if (result.event !== "success") return;
 
-      const newUrls = extractUrls(result);
+      // Extract the secure_url from the result.info
+      const secureUrl = typeof result.info === "object" && "secure_url" in result.info ? result.info.secure_url : null;
+
+      if (!secureUrl || typeof secureUrl !== "string") return;
+
       setImageUrls((prev) => {
-        const combinedUrls = [...prev, ...newUrls].slice(0, maxImages);
-        
+        const combinedUrls = [...prev, secureUrl].slice(0, maxImages);
+
         // Set error if not enough images
         if (combinedUrls.length < maxImages) {
           setError(`Please upload ${maxImages - combinedUrls.length} more images`);
         } else {
           setError("");
         }
-        
+
         onChange(combinedUrls);
         return combinedUrls;
       });
@@ -116,26 +107,37 @@ const ImageUpload = ({
               resourceType: "image",
             }}
           >
-            {({ open }) => (
-              <div
-                onClick={() => open?.()}
-                className="relative cursor-pointer hover:opacity-70 transition border-dashed border-2 border-neutral-300 flex flex-col justify-center items-center gap-4 text-neutral-600 p-4 h-64 rounded-lg"
-              >
-                <FcOldTimeCamera size={50} />
-                <div className="font-semibold text-lg text-center">
-                  Click to upload
-                  <p className="text-sm font-normal">
-                    {imageUrls.length} of {maxImages} images uploaded
-                    <br />
-                    {remainingSlots > 0 && (
-                      <span className="text-red-500">
-                        You must upload {remainingSlots} more {remainingSlots === 1 ? "image" : "images"}
-                      </span>
-                    )}
-                  </p>
+            {({ open }) => {
+              const handleOpen = () => {
+                if (open) {
+                  open();
+                } else {
+                  console.error("Cloudinary upload widget failed to initialize: 'open' function is undefined");
+                  setError("Failed to open upload widget. Please try again.");
+                }
+              };
+
+              return (
+                <div
+                  onClick={handleOpen}
+                  className="relative cursor-pointer hover:opacity-70 transition border-dashed border-2 border-neutral-300 flex flex-col justify-center items-center gap-4 text-neutral-600 p-4 h-64 rounded-lg"
+                >
+                  <FcOldTimeCamera size={50} />
+                  <div className="font-semibold text-lg text-center">
+                    Click to upload
+                    <p className="text-sm font-normal">
+                      {imageUrls.length} of {maxImages} images uploaded
+                      <br />
+                      {remainingSlots > 0 && (
+                        <span className="text-red-500">
+                          You must upload {remainingSlots} more {remainingSlots === 1 ? "image" : "images"}
+                        </span>
+                      )}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            }}
           </CldUploadWidget>
         ) : (
           <div className="text-green-500 text-sm font-medium">

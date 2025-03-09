@@ -58,13 +58,12 @@ function RentModal() {
   const description = watch("description");
   const price = watch("price");
 
-  // Fixed useMemo: Removed unnecessary [location] dependency
-  const Map = useMemo(
+  const Map = useMemo(  
     () =>
       dynamic(() => import("../Map"), {
         ssr: false,
       }),
-    [] // Empty dependency array since the dynamic import doesn't depend on any state/props
+    [location]
   );
 
   const setCustomValue = (id: string, value: any) => {
@@ -126,6 +125,7 @@ function RentModal() {
     }
     return true;
   };
+  
 
   const onBack = () => {
     setStep((value) => value - 1);
@@ -264,8 +264,10 @@ function RentModal() {
       </div>
     );
   }
+  
 
   if (step === STEPS.IMAGES) {
+    console.log('Images')
     bodyContent = (
       <div className="flex flex-col gap-3">
         <Heading

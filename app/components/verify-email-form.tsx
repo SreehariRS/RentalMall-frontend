@@ -1,3 +1,4 @@
+// app/components/verify-email-form.tsx
 "use client";
 
 import { useSearchParams } from "next/navigation";

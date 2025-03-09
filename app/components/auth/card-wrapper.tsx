@@ -14,11 +14,10 @@ interface CardWrapperProps {
   headerLabel: string;
   backButtonLabel: string;
   title: string;
-  showSocial?: boolean;
   backButtonHref: string;
 }
 
-const CardWrapper = ({ children, headerLabel, backButtonLabel, backButtonHref, title, showSocial}: CardWrapperProps) => {
+const CardWrapper = ({ children, headerLabel, backButtonLabel, backButtonHref, title }: CardWrapperProps) => {
   return (
     <Card className="shadow-md w-full">
       <CardHeader>

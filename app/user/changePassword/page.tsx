@@ -2,8 +2,11 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { changePassword } from "../../../services/userApi";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
+
+// Add this line to make the page dynamic
+export const dynamic = "force-dynamic";
 
 function ChangePassword() {
   const router = useRouter();
@@ -41,7 +44,7 @@ function ChangePassword() {
         setSuccess("Password updated successfully!");
         setError("");
 
-        router.push('/');
+        router.push("/");
       }
     } catch (error) {
       console.error(error);
@@ -72,7 +75,13 @@ function ChangePassword() {
                 placeholder="Enter your current password"
                 required
               />
-             
+              <button
+                type="button"
+                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+              >
+                <FontAwesomeIcon icon={showCurrentPassword ? faEyeSlash : faEye} />
+              </button>
             </div>
           </div>
 

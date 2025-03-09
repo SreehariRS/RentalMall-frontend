@@ -138,7 +138,6 @@ function ListingClient({ listing, reservations = [], currentUser }: ListingClien
               user={listing.user}
               category={category}
               description={listing.description}
-              guestCount={listing.guestCount}
               roomCount={listing.roomCount}
               locationValues={listing.locationValues}
             />

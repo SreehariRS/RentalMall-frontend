@@ -1,44 +1,42 @@
 import { NextResponse } from "next/server";
-import prisma from '@/app/libs/prismadb';
+import prisma from "@/app/libs/prismadb";
 import getCurrentUser from "@/app/actions/getCurrentUser";
 import { pusherServer } from "@/app/libs/pusher";
-import { getOrCreateWallet } from "@/app/actions/getWallet";
 
-interface IParams {
-  reservationId?: string;
-}
-
-export async function DELETE(
-  request: Request,
-  { params }: { params: IParams }
-) {
+export async function DELETE(request: Request, context: any) {
   const currentUser = await getCurrentUser();
   if (!currentUser) {
     return NextResponse.error();
   }
-  const { reservationId } = params;
+
+  const { reservationId } = context.params as { reservationId?: string };
   if (!reservationId || typeof reservationId !== "string") {
     return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
   }
+
   try {
     const result = await prisma.$transaction(async (prisma) => {
       const reservation = await prisma.reservation.findUnique({
         where: { id: reservationId },
-        include: { 
+        include: {
           listing: true,
           user: {
             select: {
               email: true,
-              id: true
-            }
-          }
-        }
+              id: true,
+            },
+          },
+        },
       });
+
       if (!reservation) {
         throw new Error("Reservation not found");
       }
 
-      if (reservation.userId !== currentUser.id && reservation.listing.userId !== currentUser.id) {
+      if (
+        reservation.userId !== currentUser.id &&
+        reservation.listing.userId !== currentUser.id
+      ) {
         throw new Error("Unauthorized");
       }
 
@@ -60,12 +58,14 @@ export async function DELETE(
           endDate: reservation.endDate,
           totalPrice: reservation.totalPrice,
           cancelledBy: currentUser.id,
-          reason: "Cancelled by " + (currentUser.id === reservation.userId ? "guest" : "host")
-        }
+          reason:
+            "Cancelled by " +
+            (currentUser.id === reservation.userId ? "guest" : "host"),
+        },
       });
 
       await prisma.reservation.delete({
-        where: { id: reservationId }
+        where: { id: reservationId },
       });
 
       if (currentUser.id === reservation.listing.userId) {
@@ -73,20 +73,24 @@ export async function DELETE(
           data: {
             userId: reservation.userId,
             message: `Unfortunately, your reservation for "${reservation.listing.title}" has been canceled due to an unexpected issue. The total amount of ₹${reservation.totalPrice} will be refunded to your wallet. We apologize for any inconvenience caused and appreciate your understanding.`,
-            type: "info"
-          }
+            type: "info",
+          },
         });
 
         if (reservation.user?.email) {
           await pusherServer.trigger(
             `user-${reservation.user.email}-notifications`,
-            'notification:new',
+            "notification:new",
             notification
           );
         }
       }
 
-      return { success: true, refundedAmount: reservation.totalPrice, newBalance: updatedWallet.balance };
+      return {
+        success: true,
+        refundedAmount: reservation.totalPrice,
+        newBalance: updatedWallet.balance,
+      };
     });
 
     return NextResponse.json(result);

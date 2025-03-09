@@ -2,6 +2,9 @@ import getCurrentUser from "@/app/actions/getCurrentUser";
 import { getWalletBalance } from "@/app/actions/getWallet";
 import WalletClient from "./WalletClient";
 
+// Add this line to make the page dynamic
+export const dynamic = "force-dynamic";
+
 export default async function WalletPage() {
   const currentUser = await getCurrentUser();
 

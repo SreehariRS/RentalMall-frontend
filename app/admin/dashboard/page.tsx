@@ -66,7 +66,12 @@ function DarkDashboard() {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const data = await getDashboardStats();
+                const token = localStorage.getItem("adminToken"); // Retrieve the token
+                if (!token) {
+                    router.push("/admin");
+                    return;
+                }
+                const data = await getDashboardStats(token); // Pass the token
                 if (data.error) {
                     setError(data.message);
                 } else {
@@ -82,9 +87,10 @@ function DarkDashboard() {
                 setLoading(false);
             }
         };
-
+    
         fetchStats();
     }, []);
+    
 
     const extendMonthlyData = (data: MonthlyBooking[]): MonthlyBooking[] => {
         const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];

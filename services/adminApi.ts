@@ -167,14 +167,18 @@ export const getAllReservations = async (page: number = 1, limit: number = 8): P
 };
 
 //dashboard
-export const getDashboardStats = async () => {
+export const getDashboardStats = async (token: string) => {
   try {
-    const response = await axios.get(`${BASE_URL}/api/admin/dashboard-stats`);
-    return response.data; // Now this includes totalHosts
+      const response = await axios.get(`${BASE_URL}/api/admin/dashboard-stats`, {
+          headers: {
+              Authorization: `Bearer ${token}`, // Send token in headers
+          },
+      });
+      return response.data; // Includes totalHosts
   } catch (error: any) {
-    console.error("Error fetching dashboard stats:", error);
-    return { error: true, message: error.response?.data?.message || "Failed to fetch dashboard stats" };
+      console.error("Error fetching dashboard stats:", error);
+      return { error: true, message: error.response?.data?.message || "Failed to fetch dashboard stats" };
   }
-}
+};
 
 
