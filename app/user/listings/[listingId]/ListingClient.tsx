@@ -89,11 +89,8 @@ function ListingClient({ listing, reservations = [], currentUser }: ListingClien
 
   useEffect(() => {
     if (dateRange.startDate && dateRange.endDate) {
-      const dayCount = differenceInCalendarDays(dateRange.endDate, dateRange.startDate) + 1; // Add 1 to include both start and end dates
+      const dayCount = differenceInCalendarDays(dateRange.endDate, dateRange.startDate) + 1;
       const basePrice = listing.offerPrice !== undefined && listing.offerPrice !== null ? listing.offerPrice : listing.price;
-      console.log("Day count:", dayCount); // Debug log
-      console.log("Base price:", basePrice); // Debug log
-      console.log("Calculated total:", dayCount * basePrice); // Debug log
       if (dayCount && basePrice) {
         setTotalPrice(dayCount * basePrice);
       } else {
@@ -115,8 +112,8 @@ function ListingClient({ listing, reservations = [], currentUser }: ListingClien
       loginModal.onOpen();
       return;
     }
-    console.log("Message Host clicked");
-  }, [currentUser, loginModal]);
+    router.push("/user/chat"); // Redirect to /user/chat
+  }, [currentUser, loginModal, router]);
 
   const isOwnListing = useMemo(() => {
     return currentUser?.id === listing.user?.id;

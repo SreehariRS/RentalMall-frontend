@@ -217,7 +217,7 @@ export const deleteNotification = async (notificationId: string) => {
     }
 };
 
-  export const createOrder = async (amount:number,currency:string='INR') => {
+export const createOrder = async (amount:number,currency:string='INR') => {
     try {
         const response = await axios.post(`${BASE_URL}/api/order`,{amount,currency});
         return response.data;

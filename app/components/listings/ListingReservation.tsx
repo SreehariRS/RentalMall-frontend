@@ -2,9 +2,10 @@
 import { Range } from "react-date-range";
 import Calendar from "../inputs/Calendar";
 import Button from "../Button";
-import RenderRazorpay from "../renderRazorpay";
+import RenderRazorpay from "../renderRazorpay"; 
 import { useState } from "react";
 import { createOrder } from "@/services/userApi";
+import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
 interface ListingReservationProps {
@@ -13,10 +14,10 @@ interface ListingReservationProps {
   dateRange: Range;
   totalPrice: number;
   onChangeDates: (value: Range) => void;
+  onSubmit: () => void;
   disabled?: boolean;
   disabledDates: Date[];
   listingId: string;
-  onSubmit?: () => void; // Add onSubmit prop
 }
 
 function ListingReservation({
@@ -25,10 +26,10 @@ function ListingReservation({
   dateRange,
   totalPrice,
   onChangeDates,
+  onSubmit,
   disabled,
   disabledDates,
   listingId,
-  onSubmit, // Destructure onSubmit
 }: ListingReservationProps) {
   const [displayRazorpay, setDisplayRazorpay] = useState(false);
   const [orderDetails, setOrderDetails] = useState({
@@ -36,6 +37,7 @@ function ListingReservation({
     currency: null as string | null,
     amount: null as number | null,
   });
+  const router = useRouter();
 
   const displayPrice = offerPrice !== undefined && offerPrice !== null ? offerPrice : price;
 
@@ -92,11 +94,7 @@ function ListingReservation({
           <div>₹ {totalPrice}</div>
         </div>
         <div className="p-4">
-          <Button
-            onClick={onSubmit || handleSubmit} // Use onSubmit if provided, else fallback to handleSubmit
-            disabled={disabled}
-            label="Reserve"
-          />
+          <Button onClick={handleSubmit} disabled={disabled} label="Reserve" />
         </div>
       </div>
 
