@@ -24,6 +24,8 @@ export interface IlistingsParams {
   endDate?: string;
   locationValue?: string;
   category?: string;
+  page?: number; // Add page for pagination
+  limit?: number; // Add limit for pagination
 }
 
 export default async function getListings(params: IlistingsParams) {
@@ -36,8 +38,10 @@ export default async function getListings(params: IlistingsParams) {
       startDate,
       endDate,
       category,
+      page = 1, // Default to page 1
+      limit = 12, // Default to 10 items per page
     } = params;
-    
+
     const query: QueryType = {};
 
     if (userId) {
@@ -46,45 +50,39 @@ export default async function getListings(params: IlistingsParams) {
     if (category) {
       query.category = category;
     }
-
     if (roomCount) {
-      query.roomCount = {
-        gte: +roomCount,
-      };
+      query.roomCount = { gte: +roomCount };
     }
     if (guestCount) {
-      query.guestCount = {
-        gte: +guestCount,
-      };
+      query.guestCount = { gte: +guestCount };
     }
-
     if (locationValue) {
       query.locationValues = locationValue;
     }
-
     if (startDate && endDate) {
       query.reservations = {
         none: {
           OR: [
-            {
-              endDate: { gte: startDate },
-              startDate: { lte: startDate },
-            },
-            {
-              startDate: { lte: endDate },
-              endDate: { gte: endDate },
-            },
+            { endDate: { gte: startDate }, startDate: { lte: startDate } },
+            { startDate: { lte: endDate }, endDate: { gte: endDate } },
           ],
         },
       };
     }
 
+    // Calculate skip value for pagination
+    const skip = (page - 1) * limit;
+
+    // Fetch paginated listings
     const listings = await prisma.listing.findMany({
       where: query,
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: { createdAt: "desc" },
+      skip: skip,
+      take: limit,
     });
+
+    // Fetch total count for pagination metadata
+    const totalCount = await prisma.listing.count({ where: query });
 
     const safeListings = listings.map((listing) => ({
       ...listing,
@@ -92,7 +90,12 @@ export default async function getListings(params: IlistingsParams) {
       imageSrc: listing.imageSrc ?? [],
     }));
 
-    return safeListings;
+    return {
+      listings: safeListings,
+      totalCount,
+      currentPage: page,
+      totalPages: Math.ceil(totalCount / limit),
+    };
   } catch (error: unknown) {
     console.error("Error fetching listings:", error);
     if (error instanceof Error) {

@@ -3,31 +3,43 @@ import getListings, { IlistingsParams } from "./actions/getListings";
 import Container from "./components/Container";
 import EmptyState from "./components/EmptyState";
 import ListingCards from "./components/listings/ListingCards";
+import ClientInfiniteScrollWrapper from "./components/ClientInfiniteScrollWrapper";
 
-const Home = async ({ searchParams }: any) => {
-  const params = searchParams as IlistingsParams; // Cast to IlistingsParams
+export const dynamic = "force-dynamic"; // Ensure dynamic rendering
 
-  const listings = await getListings(params);
+interface HomeProps {
+  searchParams: IlistingsParams;
+}
+
+const Home = async ({ searchParams }: HomeProps) => {
+  const initialParams = searchParams as IlistingsParams;
+  const initialPage = 1;
+  const initialLimit = 12;
+
+  // Fetch initial listings on the server
+  const initialData = await getListings({
+    ...initialParams,
+    page: initialPage,
+    limit: initialLimit,
+  });
+
   const currentUser = await getCurrentUser();
 
-  if (listings.length === 0) {
+  if (!initialData.listings || initialData.listings.length === 0) {
     return <EmptyState showReset />;
   }
 
   return (
     <div>
       <Container>
-        <div className="pt-24 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-col-5 2xl:grid-cols-6 gap-8">
-          {listings.map((listing) => {
-            return (
-              <ListingCards
-                currentUser={currentUser}
-                key={listing.id}
-                data={listing}
-              />
-            );
-          })}
-        </div>
+        <ClientInfiniteScrollWrapper
+          initialListings={initialData.listings}
+          initialPage={initialPage}
+          totalPages={initialData.totalPages}
+          searchParams={initialParams}
+          currentUser={currentUser}
+          limit={initialLimit}
+        />
       </Container>
     </div>
   );
