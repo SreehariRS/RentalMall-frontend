@@ -2,11 +2,13 @@
 import { Range } from "react-date-range";
 import Calendar from "../inputs/Calendar";
 import Button from "../Button";
-import RenderRazorpay from "../renderRazorpay"; 
+import RenderRazorpay from "../renderRazorpay";
 import { useState } from "react";
 import { createOrder } from "@/services/userApi";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import useLoginModal from "@/app/hooks/useLoginModal"; // Import the login modal hook
+import { SafeUser } from "@/app/types"; // Import SafeUser type for currentUser
 
 interface ListingReservationProps {
   price: number;
@@ -18,6 +20,7 @@ interface ListingReservationProps {
   disabled?: boolean;
   disabledDates: Date[];
   listingId: string;
+  currentUser?: SafeUser | null; // Add currentUser prop to check if user is logged in
 }
 
 function ListingReservation({
@@ -30,6 +33,7 @@ function ListingReservation({
   disabled,
   disabledDates,
   listingId,
+  currentUser, // Destructure the new prop
 }: ListingReservationProps) {
   const [displayRazorpay, setDisplayRazorpay] = useState(false);
   const [orderDetails, setOrderDetails] = useState({
@@ -38,8 +42,21 @@ function ListingReservation({
     amount: null as number | null,
   });
   const router = useRouter();
+  const loginModal = useLoginModal(); // Initialize the login modal hook
 
-  const displayPrice = offerPrice !== undefined && offerPrice !== null ? offerPrice : price;
+  const displayPrice =
+    offerPrice !== undefined && offerPrice !== null ? offerPrice : price;
+
+  // Handle the Reserve button click
+  const handleReserveClick = async () => {
+    if (!currentUser) {
+      // If user is not logged in, trigger the login modal
+      return loginModal.onOpen();
+    }
+
+    // If user is logged in, proceed with the existing handleSubmit logic
+    await handleSubmit();
+  };
 
   async function handleSubmit() {
     try {
@@ -79,7 +96,9 @@ function ListingReservation({
           <div className="text-2xl font-semibold">₹ {displayPrice}</div>
           <div className="font-light text-neutral-600">night</div>
           {offerPrice !== undefined && offerPrice !== null && (
-            <div className="text-sm text-gray-500 line-through ml-2">₹ {price}</div>
+            <div className="text-sm text-gray-500 line-through ml-2">
+              ₹ {price}
+            </div>
           )}
         </div>
         <hr />
@@ -94,24 +113,31 @@ function ListingReservation({
           <div>₹ {totalPrice}</div>
         </div>
         <div className="p-4">
-          <Button onClick={handleSubmit} disabled={disabled} label="Reserve" />
+          <Button
+            onClick={handleReserveClick} // Use the new handler instead of handleSubmit
+            disabled={disabled}
+            label="Reserve"
+          />
         </div>
       </div>
 
-      {displayRazorpay && orderDetails.orderId && orderDetails.currency && orderDetails.amount && (
-        <RenderRazorpay
-          orderId={orderDetails.orderId || ""}
-          keyId={process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!}
-          currency={orderDetails.currency || "INR"}
-          amount={orderDetails.amount || 0}
-          listingId={listingId}
-          startDate={dateRange.startDate?.toISOString() || ""}
-          endDate={dateRange.endDate?.toISOString() || ""}
-          totalPrice={totalPrice}
-          onSuccess={handleSuccess}
-          onFailure={handleFailure}
-        />
-      )}
+      {displayRazorpay &&
+        orderDetails.orderId &&
+        orderDetails.currency &&
+        orderDetails.amount && (
+          <RenderRazorpay
+            orderId={orderDetails.orderId || ""}
+            keyId={process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!}
+            currency={orderDetails.currency || "INR"}
+            amount={orderDetails.amount || 0}
+            listingId={listingId}
+            startDate={dateRange.startDate?.toISOString() || ""}
+            endDate={dateRange.endDate?.toISOString() || ""}
+            totalPrice={totalPrice}
+            onSuccess={handleSuccess}
+            onFailure={handleFailure}
+          />
+        )}
     </>
   );
 }

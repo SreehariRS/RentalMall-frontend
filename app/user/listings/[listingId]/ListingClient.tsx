@@ -149,6 +149,7 @@ function ListingClient({ listing, reservations = [], currentUser }: ListingClien
                 disabled={isLoading || isOwnListing}
                 disabledDates={disableDates}
                 listingId={listing.id}
+                currentUser={currentUser} // Pass currentUser to ListingReservation
               />
             </div>
           </div>
