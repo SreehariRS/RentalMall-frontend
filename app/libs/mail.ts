@@ -20,7 +20,7 @@ import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const domain = "http://localhost:3000";
+const domain = "https://www.rentalmall.site/";
 
 export const sendVerificationEmail = async (email: string, token: string) => {
   const confirmationLink = `${domain}/verify-email?token=${token}`;
@@ -56,7 +56,7 @@ export const sendVerificationEmail = async (email: string, token: string) => {
   `;
 
   await resend.emails.send({
-    from: "onboarding@resend.dev",
+    from: "https://www.rentalmall.site/",
     to: email,
     subject: "Verify your email - RENTALMALL",
     html: emailHTML,
