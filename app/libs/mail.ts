@@ -1,26 +1,8 @@
-// import { Resend } from 'resend';
-
-// const resend = new Resend(process.env.RESEND_API_KEY)
-
-// const domain = "http://localhost:3000"
-
-// export const sendVerificationEmail = async (email: string, token: string) => {
-//     const confirmationLink = `${domain}/verify-email?token=${token}`
-
-//     await resend.emails.send({
-//         from: "onboarding@resend.dev",
-//         to: email,
-//         subject: "Verify your email",
-//         html: `<p>Click <a href="${confirmationLink}">here</a> to verify your email.</p>`
-//     })
-// }
-
-
-import { Resend } from 'resend';
+import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const domain = "https://www.rentalmall.site/";
+const domain = "https://www.rentalmall.site";
 
 export const sendVerificationEmail = async (email: string, token: string) => {
   const confirmationLink = `${domain}/verify-email?token=${token}`;
@@ -56,7 +38,7 @@ export const sendVerificationEmail = async (email: string, token: string) => {
   `;
 
   await resend.emails.send({
-    from: "https://www.rentalmall.site/",
+    from: "no-reply@rentalmall.site", // ✅ Using the correct sender email
     to: email,
     subject: "Verify your email - RENTALMALL",
     html: emailHTML,
