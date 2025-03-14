@@ -1,8 +1,7 @@
 import axios from "axios";
 
 // Base API URL
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
+const BASE_URL = "https://api.rentalmall.site"
 // Enable cookies (if needed for session handling)
 axios.defaults.withCredentials = true;
 

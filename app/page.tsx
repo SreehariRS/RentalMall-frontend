@@ -8,11 +8,14 @@ import ClientInfiniteScrollWrapper from "./components/ClientInfiniteScrollWrappe
 export const dynamic = "force-dynamic"; // Ensure dynamic rendering
 
 interface HomeProps {
-  searchParams: IlistingsParams;
+  searchParams: { [key: string]: string | string[] | undefined }; // Match Next.js searchParams type
 }
 
 const Home = async ({ searchParams }: HomeProps) => {
-  const initialParams = searchParams as IlistingsParams;
+  const initialParams: IlistingsParams = {
+    ...searchParams,
+    // Add any necessary type casting or defaults if needed
+  } as IlistingsParams;
   const initialPage = 1;
   const initialLimit = 12;
 
