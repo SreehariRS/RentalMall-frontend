@@ -107,14 +107,6 @@ function ListingClient({ listing, reservations = [], currentUser }: ListingClien
     return categories.find((item) => item.label === listing.category);
   }, [listing.category]);
 
-  const handleMessageHost = useCallback(() => {
-    if (!currentUser) {
-      loginModal.onOpen();
-      return;
-    }
-    router.push("/user/chat"); // Redirect to /user/chat
-  }, [currentUser, loginModal, router]);
-
   const isOwnListing = useMemo(() => {
     return currentUser?.id === listing.user?.id;
   }, [currentUser, listing.user]);
@@ -156,6 +148,7 @@ function ListingClient({ listing, reservations = [], currentUser }: ListingClien
 
           <div className="mt-10">
             <MeetTheHost
+              hostId={listing.user?.id || ""} // Pass hostId from listing.user
               hostName={listing.user?.name || "Host"}
               hostImage={listing.user?.image}
               hostingSince={new Date(listing.user?.createdAt || "2020-01-01").toLocaleDateString()}
@@ -163,7 +156,6 @@ function ListingClient({ listing, reservations = [], currentUser }: ListingClien
                 (new Date().getTime() - new Date(listing.user?.createdAt || "2020-01-01").getTime()) /
                   (1000 * 60 * 60 * 24 * 30)
               )}
-              onMessageHost={handleMessageHost}
               currentUser={currentUser}
             />
           </div>
