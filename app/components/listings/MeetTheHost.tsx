@@ -6,25 +6,27 @@ import { useRouter } from "next/navigation";
 import Avatar from "../Avatar";
 import Button from "../Button";
 import { SafeUser } from "@/app/types";
+import axios from "axios";
 
 interface MeetTheHostProps {
+  hostId: string; // Add hostId to identify the host for creating a conversation
   hostName: string;
   hostImage?: string | null;
   hostingSince: string;
   experienceInMonths: number;
   currentUser?: SafeUser | null;
-  onMessageHost?: () => void; // Add onMessageHost prop
 }
 
 const MeetTheHost = ({
+  hostId, // Add hostId to props
   hostName,
   hostImage,
   hostingSince,
   experienceInMonths,
   currentUser,
-  onMessageHost, // Destructure onMessageHost
 }: MeetTheHostProps) => {
   const [mounted, setMounted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // Add loading state
   const router = useRouter();
 
   useEffect(() => {
@@ -36,14 +38,31 @@ const MeetTheHost = ({
   }
 
   const handleMessageHost = () => {
-    if (onMessageHost) {
-      onMessageHost(); // Use the passed onMessageHost if provided
-    } else {
-      router.push("/user/chat"); // Fallback to default behavior
+    if (!currentUser) {
+      // Optionally redirect to login if the user isn't logged in
+      router.push("/login");
+      return;
     }
+
+    setIsLoading(true);
+    axios
+      .post("/api/conversations", { userId: hostId }) // Create or fetch conversation with the host
+      .then((response) => {
+        if (response.data?.id) {
+          router.push(`/conversations/${response.data.id}`); // Redirect to the conversation
+        } else {
+          console.error("Conversation ID missing in response");
+          router.push("/user/chat"); // Fallback
+        }
+      })
+      .catch((error) => {
+        console.error("Error creating conversation:", error);
+        router.push("/user/chat"); // Fallback on error
+      })
+      .finally(() => setIsLoading(false));
   };
 
-  // Disable button if current user is the host (comparing names as a fallback)
+  // Disable button if current user is the host (comparing names as a fallback) or if loading
   const isOwnHost = currentUser?.name === hostName;
 
   return (
@@ -115,10 +134,10 @@ const MeetTheHost = ({
             {/* Action Button */}
             <div className="pt-2">
               <Button
-                label="Message Host"
+                label={isLoading ? "Loading..." : "Message Host"} // Optionally change label during loading
                 onClick={handleMessageHost}
                 black={true}
-                disabled={isOwnHost}
+                disabled={isOwnHost || isLoading} // Disable button during loading
               />
             </div>
           </div>
