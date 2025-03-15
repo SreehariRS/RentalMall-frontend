@@ -72,22 +72,22 @@ function LoginModal() {
     const bodyContent = (
         <div className="flex flex-col gap-4">
             <Heading title="Welcome back" subtitle="Login to your account!" />
-            
+
             {/* Email Input */}
             <Input id="email" disabled={isLoading} register={register} errors={errors} required label="Email" />
 
             {/* Password Input with Eye Icon */}
             <div className="relative">
-                <Input 
-                    id="password" 
-                    type={showPassword ? "text" : "password"} 
-                    disabled={isLoading} 
-                    register={register} 
-                    errors={errors} 
-                    required 
-                    label="Password" 
+                <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    disabled={isLoading}
+                    register={register}
+                    errors={errors}
+                    required
+                    label="Password"
                 />
-                <div 
+                <div
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer"
                     onClick={() => setShowPassword((prev) => !prev)}
                 >
@@ -97,10 +97,14 @@ function LoginModal() {
         </div>
     );
 
+    function handleGoogleLogin() {
+        signIn("google")
+    }
+
     const footerContent = (
         <div className="flex flex-col gap-4 mt-3">
             <hr />
-            <Button outline label="Continue with Google" icon={FcGoogle} onClick={() => signIn("google")} />
+            <Button outline label="Continue with Google" icon={FcGoogle} onClick={handleGoogleLogin} />
             <Button outline label="Continue with Github" icon={AiFillGithub} onClick={() => signIn("github")} />
             <div className="text-neutral-500 text-center mt-4 font-light">
                 <div className="justify-center flex flex-row items-center gap-2">
