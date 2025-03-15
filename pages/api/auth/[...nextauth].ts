@@ -65,7 +65,7 @@ export const authOptions: AuthOptions = {
         async signIn({ user, account, profile }) {
             if (account?.provider === "google") {
                 try {
-                    await axios.post("http://localhost:3000/api/auth/jwtCreation", { email: user.email, google: true });
+                    await axios.post("https://www.rentalmall.site/api/auth/jwtCreation", { email: user.email, google: true });
                 } catch (error) {
                     console.log(error);
                 }
