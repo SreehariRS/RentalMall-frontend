@@ -1,5 +1,4 @@
-// services\adminApi.ts
-import axiosInstance from "./axiosInstance"; // Import the new Axios instance
+import axiosInstance from "./axiosInstance";
 
 interface Reservation {
   id: string;
