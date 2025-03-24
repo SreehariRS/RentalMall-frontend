@@ -12,8 +12,8 @@ export type FullConversationType= Conversation &{
 
 export type safelisting = Omit<Listing, "createdAt"> & {
     createdAt: string; // Serialized ISO string
-    offerPrice: number | null
-    rating: number | null;
+    offerPrice: number | null;
+    rating?: number | null; 
 };
 
 export type safeReservations = Omit<Reservation, "createdAt" | "startDate" | "endDate" | "listing"> & {
