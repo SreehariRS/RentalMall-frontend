@@ -138,7 +138,7 @@ function UserMenu({ currentUser }: UserMenuProps) {
   }, [router]);
 
   const goToProfile = useCallback(() => {
-    router.push("/user/profile");
+    router.push("/user/Profilepage");
   }, [router]);
 
   const goToFavorites = useCallback(() => {
