@@ -4,8 +4,10 @@ import getCurrentUser from "./getCurrentUser";
 const getConversations = async () => {
     const currentUser = await getCurrentUser();
     if (!currentUser) {
+        console.log("No current user found");
         return [];
     }
+    console.log("Current user ID:", currentUser.id);
     try {
         const conversations = await prisma.conversation.findMany({
             orderBy: {
@@ -26,8 +28,10 @@ const getConversations = async () => {
                 },
             },
         });
+        console.log("Fetched conversations:", conversations);
         return conversations;
-    } catch {
+    } catch (error) {
+        console.error("Error fetching conversations:", error);
         return [];
     }
 };

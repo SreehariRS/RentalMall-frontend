@@ -24,8 +24,8 @@ export interface IlistingsParams {
   endDate?: string;
   locationValue?: string;
   category?: string;
-  page?: number; // Add page for pagination
-  limit?: number; // Add limit for pagination
+  page?: number;
+  limit?: number;
 }
 
 export default async function getListings(params: IlistingsParams) {
@@ -38,8 +38,8 @@ export default async function getListings(params: IlistingsParams) {
       startDate,
       endDate,
       category,
-      page = 1, // Default to page 1
-      limit = 12, // Default to 10 items per page
+      page = 1,
+      limit = 12,
     } = params;
 
     const query: QueryType = {};
@@ -70,25 +70,39 @@ export default async function getListings(params: IlistingsParams) {
       };
     }
 
-    // Calculate skip value for pagination
     const skip = (page - 1) * limit;
 
-    // Fetch paginated listings
+    // Fetch listings with their reviews
     const listings = await prisma.listing.findMany({
       where: query,
       orderBy: { createdAt: "desc" },
       skip: skip,
       take: limit,
+      include: {
+        reviews: {
+          select: {
+            rating: true,
+          },
+        },
+      },
     });
 
-    // Fetch total count for pagination metadata
     const totalCount = await prisma.listing.count({ where: query });
 
-    const safeListings = listings.map((listing) => ({
-      ...listing,
-      createdAt: listing.createdAt.toISOString(),
-      imageSrc: listing.imageSrc ?? [],
-    }));
+    // Transform listings to include average rating
+    const safeListings = listings.map((listing) => {
+      const ratings = listing.reviews.map((review) => review.rating);
+      const averageRating =
+        ratings.length > 0 ? ratings.reduce((acc, rating) => acc + rating, 0) / ratings.length : null;
+
+      return {
+        ...listing,
+        createdAt: listing.createdAt.toISOString(),
+        imageSrc: listing.imageSrc ?? [],
+        rating: averageRating, // Add average rating
+        reviews: undefined, // Remove raw reviews from the response to keep it lightweight
+      };
+    });
 
     return {
       listings: safeListings,

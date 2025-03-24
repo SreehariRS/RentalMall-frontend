@@ -1,21 +1,23 @@
-"use client"
-import { useRouter } from "next/navigation"
-import { FaHome, FaUsers, FaUserTie, FaClipboardList, FaEnvelope, FaBars, FaSignOutAlt } from "react-icons/fa"
-import { useState } from "react"
-import Link from "next/link"
+"use client";
+import { useRouter } from "next/navigation";
+import { FaHome, FaUsers, FaUserTie, FaClipboardList, FaEnvelope, FaBars, FaSignOutAlt } from "react-icons/fa";
+import { useState } from "react";
+import Link from "next/link";
+import { useAuth } from "../hooks/useAuth";
 
-export default function DarkDashboard() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const router = useRouter()
+
+export default function Sidebar() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { logout } = useAuth(); 
+  const router = useRouter();
 
   const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen)
-  }
+    setIsSidebarOpen(!isSidebarOpen);
+  };
 
   const handleLogout = () => {
-    localStorage.removeItem("adminToken")
-    router.push("/admin")
-  }
+    logout(); // Call the centralized logout function
+  };
 
   return (
     <div className="min-h-screen flex bg-gray-900 relative">
@@ -63,10 +65,12 @@ export default function DarkDashboard() {
         </div>
       </aside>
 
-      <button className="lg:hidden p-2 absolute top-0 left-1 text-gray-200 rounded-full z-50" onClick={toggleSidebar}>
+      <button
+        className="lg:hidden p-2 absolute top-0 left-1 text-gray-200 rounded-full z-50"
+        onClick={toggleSidebar}
+      >
         <FaBars className="text-2xl" />
       </button>
     </div>
-  )
+  );
 }
-

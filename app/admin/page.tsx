@@ -1,41 +1,44 @@
 "use client";
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { loginAdmin } from "../../services/adminApi";
+import { useAuth } from "../hooks/useAuth";
 
-// Add this line to make the page dynamic
 export const dynamic = "force-dynamic";
 
 export default function AdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
+  const { login, isAuthenticated, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && isAuthenticated) {
+      router.push("/admin/dashboard");
+    }
+  }, [isAuthenticated, loading, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    try {
-      const response = await loginAdmin(email, password);
-
-      if (response?.message === "Incorrect email") {
-        toast.error("Incorrect email");
-      } else if (response?.message === "Incorrect password") {
-        toast.error("Incorrect password");
-      } else if (response?.message === "Login successful") {
-        toast.success("Login successful! Redirecting...");
-        // Save token to localStorage (or use a cookie)
-        localStorage.setItem("adminToken", response?.token);
-        setTimeout(() => router.push("/admin/dashboard"), 2000);
-      } else {
-        toast.error("Invalid credentials");
-      }
-    } catch {
-      toast.error("An unexpected error occurred. Please try again.");
+    const response = await login(email, password);
+    if (response.error) {
+      toast.error(response.message || "An unexpected error occurred");
+    } else {
+      toast.success("Login successful! Redirecting...");
+      setTimeout(() => router.push("/admin/dashboard"), 2000);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-blue-600">
+        <div className="loader ease-linear rounded-full border-4 border-t-4 border-white h-12 w-12 animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (isAuthenticated) return null;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-blue-600">
