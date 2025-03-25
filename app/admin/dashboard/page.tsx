@@ -286,7 +286,7 @@ function DarkDashboard() {
               <div>
                 <h2 className="text-2xl font-bold text-white flex items-center">
                   <PieChartIcon className="mr-3 text-indigo-500" size={24} />
-                  Bookings By Category
+                  Bookings By Category.
                 </h2>
                 <p className="text-gray-400 text-sm mt-1">Distribution across property types</p>
               </div>
