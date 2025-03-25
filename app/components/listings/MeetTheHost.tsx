@@ -7,9 +7,10 @@ import Avatar from "../Avatar";
 import Button from "../Button";
 import { SafeUser } from "@/app/types";
 import axios from "axios";
+import useLoginModal from "@/app/hooks/useLoginModal"; // Import the login modal hook
 
 interface MeetTheHostProps {
-  hostId: string; // Add hostId to identify the host for creating a conversation
+  hostId: string;
   hostName: string;
   hostImage?: string | null;
   hostingSince: string;
@@ -18,7 +19,7 @@ interface MeetTheHostProps {
 }
 
 const MeetTheHost = ({
-  hostId, // Add hostId to props
+  hostId,
   hostName,
   hostImage,
   hostingSince,
@@ -26,8 +27,9 @@ const MeetTheHost = ({
   currentUser,
 }: MeetTheHostProps) => {
   const [mounted, setMounted] = useState(false);
-  const [isLoading, setIsLoading] = useState(false); // Add loading state
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const loginModal = useLoginModal(); // Initialize the login modal hook
 
   useEffect(() => {
     setMounted(true);
@@ -37,32 +39,37 @@ const MeetTheHost = ({
     return null;
   }
 
-  const handleMessageHost = () => {
+  // Handle the Message Host button click
+  const handleMessageHostClick = () => {
     if (!currentUser) {
-      // Optionally redirect to login if the user isn't logged in
-      router.push("/login");
-      return;
+      // If user is not logged in, trigger the login modal
+      return loginModal.onOpen();
     }
 
+    // If user is logged in, proceed with the existing message logic
+    handleMessageHost();
+  };
+
+  const handleMessageHost = () => {
     setIsLoading(true);
     axios
-      .post("/api/conversations", { userId: hostId }) // Create or fetch conversation with the host
+      .post("/api/conversations", { userId: hostId })
       .then((response) => {
         if (response.data?.id) {
-          router.push(`/conversations/${response.data.id}`); // Redirect to the conversation
+          router.push(`/conversations/${response.data.id}`);
         } else {
           console.error("Conversation ID missing in response");
-          router.push("/user/chat"); // Fallback
+          router.push("/user/chat");
         }
       })
       .catch((error) => {
         console.error("Error creating conversation:", error);
-        router.push("/user/chat"); // Fallback on error
+        router.push("/user/chat");
       })
       .finally(() => setIsLoading(false));
   };
 
-  // Disable button if current user is the host (comparing names as a fallback) or if loading
+  // Disable button if current user is the host or if loading
   const isOwnHost = currentUser?.name === hostName;
 
   return (
@@ -134,10 +141,10 @@ const MeetTheHost = ({
             {/* Action Button */}
             <div className="pt-2">
               <Button
-                label={isLoading ? "Loading..." : "Message Host"} // Optionally change label during loading
-                onClick={handleMessageHost}
+                label={isLoading ? "Loading..." : "Message Host"}
+                onClick={handleMessageHostClick} // Use the new handler
                 black={true}
-                disabled={isOwnHost || isLoading} // Disable button during loading
+                disabled={isOwnHost || isLoading}
               />
             </div>
           </div>
