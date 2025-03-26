@@ -9,7 +9,7 @@ import { format } from "date-fns";
 import Image from "next/image";
 import HeartButton from "../HeartButton";
 import Button from "../Button";
-import { ChevronLeft, ChevronRight, Gift, Tag } from "lucide-react";
+import { ChevronLeft, ChevronRight, Gift, Tag, Pencil } from "lucide-react";
 import axios from "axios";
 
 interface ListingCardProps {
@@ -17,6 +17,7 @@ interface ListingCardProps {
   reservation?: safeReservations | SafeCancelledReservations;
   onAction?: (id: string) => void;
   onOffer?: (id: string, price: number) => void;
+  onEdit?: (listing: safelisting) => void; // Updated to pass full listing
   disabled?: boolean;
   actionLabel?: string;
   actionId?: string;
@@ -28,10 +29,9 @@ interface LocationInfo {
   region: string;
 }
 
-// Define a type for reviews
 interface Review {
   rating: number;
-  [key: string]: unknown; // Allow for additional properties if needed
+  [key: string]: unknown;
 }
 
 const ListingCards = ({
@@ -39,6 +39,7 @@ const ListingCards = ({
   reservation,
   onAction,
   onOffer,
+  onEdit,
   disabled,
   actionId = "",
   actionLabel,
@@ -52,12 +53,8 @@ const ListingCards = ({
 
   const fetchedLocationRef = useRef<string | null>(null);
 
-  // Fetch location info
   useEffect(() => {
-    if (!data.locationValues || fetchedLocationRef.current === data.locationValues) {
-      return;
-    }
-
+    if (!data.locationValues || fetchedLocationRef.current === data.locationValues) return;
     const fetchLocation = async () => {
       try {
         const locations = await searchLocations(data.locationValues);
@@ -73,28 +70,25 @@ const ListingCards = ({
         setLocationInfo({ label: data.locationValues, region: "Unknown Region" });
       }
     };
-
     fetchLocation();
   }, [data.locationValues, searchLocations]);
 
-  // Fetch reviews and calculate average rating
   useEffect(() => {
     const fetchReviews = async () => {
       try {
         const response = await axios.get(`/api/reviews?listingId=${data.id}`);
-        const reviews: Review[] = response.data; // Type the response data as Review[]
+        const reviews: Review[] = response.data;
         if (reviews.length > 0) {
           const avgRating = reviews.reduce((acc: number, review: Review) => acc + review.rating, 0) / reviews.length;
           setAverageRating(avgRating);
         } else {
-          setAverageRating(0); // No reviews yet
+          setAverageRating(0);
         }
       } catch (error) {
         console.error("Error fetching reviews for rating:", error);
-        setAverageRating(null); // Handle error gracefully
+        setAverageRating(null);
       }
     };
-
     fetchReviews();
   }, [data.id]);
 
@@ -116,6 +110,15 @@ const ListingCards = ({
       onOffer?.(actionId, data.price);
     },
     [onOffer, actionId, disabled, data.price],
+  );
+
+  const handleEdit = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.stopPropagation();
+      if (disabled) return;
+      onEdit?.(data); // Pass full listing data
+    },
+    [onEdit, disabled, data],
   );
 
   const nextSlide = (e: React.MouseEvent) => {
@@ -148,9 +151,8 @@ const ListingCards = ({
     return `${format(start, "PP")} - ${format(end, "PP")}`;
   }, [reservation]);
 
-  // Function to render single star rating
   const renderRating = (rating: number | null) => {
-    if (rating === null || rating === 0) return null; // Hide if no rating or loading
+    if (rating === null || rating === 0) return null;
     return (
       <div className="flex items-center gap-1.5">
         <span className="text-black drop-shadow-sm">★</span>
@@ -178,18 +180,10 @@ const ListingCards = ({
             </div>
           )}
           <div className="hidden group-hover:flex items-center justify-between w-full absolute top-1/2 transform -translate-y-1/2 px-4">
-            <button
-              onClick={prevSlide}
-              className="bg-white/70 rounded-full p-2 hover:bg-white transition"
-              aria-label="Previous image"
-            >
+            <button onClick={prevSlide} className="bg-white/70 rounded-full p-2 hover:bg-white transition" aria-label="Previous image">
               <ChevronLeft className="w-4 h-4 text-gray-600" />
             </button>
-            <button
-              onClick={nextSlide}
-              className="bg-white/70 rounded-full p-2 hover:bg-white transition"
-              aria-label="Next image"
-            >
+            <button onClick={nextSlide} className="bg-white/70 rounded-full p-2 hover:bg-white transition" aria-label="Next image">
               <ChevronRight className="w-4 h-4 text-gray-600" />
             </button>
           </div>
@@ -203,9 +197,7 @@ const ListingCards = ({
           </div>
         </div>
         <div className="flex justify-between items-center">
-          <div className="font-semibold text-lg">
-            {locationInfo ? `${locationInfo.region}` : "Loading location..."}
-          </div>
+          <div className="font-semibold text-lg">{locationInfo ? `${locationInfo.region}` : "Loading location..."}</div>
           {renderRating(averageRating)}
         </div>
         <div className="font-light text-neutral-500">{reservationDate || data.category}</div>
@@ -224,6 +216,16 @@ const ListingCards = ({
               aria-label="Make an offer"
             >
               <Gift className="w-4 h-4 text-red-600" />
+            </button>
+          )}
+          {onEdit && (
+            <button
+              onClick={handleEdit}
+              disabled={disabled}
+              className="p-2 border border-neutral-200 rounded-md hover:bg-neutral-100 disabled:opacity-50 transition"
+              aria-label="Edit listing"
+            >
+              <Pencil className="w-4 h-4 text-blue-600" />
             </button>
           )}
         </div>

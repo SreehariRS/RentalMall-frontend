@@ -44,6 +44,7 @@ model User {
     reviews     Review[]
     wallet         Wallet?  
   walletId       String?   @db.ObjectId
+    reviewResponses ReviewResponse[] 
 }
 
 model Conversation {
@@ -183,8 +184,20 @@ model Review {
   reservation   Reservation? @relation(fields: [reservationId], references: [id], onDelete: SetNull)
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   listing     Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  responses     ReviewResponse[] @relation
 }
 
+model ReviewResponse {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  reviewId    String   @db.ObjectId
+  userId      String   @db.ObjectId
+  content     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  review      Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
 model Notification {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   userId    String   @db.ObjectId

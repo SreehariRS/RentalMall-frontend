@@ -7,6 +7,7 @@ import { useCallback, useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 import ListingCards from "../components/listings/ListingCards";
+import EditModal from "../components/modals/EditModal";
 
 interface PropertiesClientProps {
   listings: safelisting[];
@@ -18,42 +19,31 @@ function PropertiesClient({ listings = [], currentUser }: PropertiesClientProps)
   const [deletingId, setDeletingId] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
   const [offerModalVisible, setOfferModalVisible] = useState(false);
-  const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [selectedListing, setSelectedListing] = useState<safelisting | null>(null);
   const [activeReservation, setActiveReservation] = useState<{ startDate: string; endDate: string } | null>(null);
   const [offerPrice, setOfferPrice] = useState<number | "">("");
   const [originalPrice, setOriginalPrice] = useState<number | null>(null);
 
-  // Debug: Log the listings prop to verify its value
   console.log("PropertiesClient listings prop:", listings);
 
   const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString("en-US", {
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    });
+    return new Date(date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
   };
 
-  // Delete modal
   const openModal = async (id: string) => {
     try {
       const response = await axios.get(`/api/listings/${id}/reservations`);
       const activeReservations = response.data;
-
       if (activeReservations && activeReservations.length > 0) {
         const reservation = activeReservations[0];
         const formattedStartDate = formatDate(reservation.startDate);
         const formattedEndDate = formatDate(reservation.endDate);
-
-        setActiveReservation({
-          startDate: formattedStartDate,
-          endDate: formattedEndDate,
-        });
+        setActiveReservation({ startDate: formattedStartDate, endDate: formattedEndDate });
       } else {
         setActiveReservation(null);
       }
-
-      setSelectedListingId(id);
+      setSelectedListing(listings.find((l) => l.id === id) || null);
       setModalVisible(true);
     } catch (error) {
       console.error("Error checking reservations:", error);
@@ -63,13 +53,12 @@ function PropertiesClient({ listings = [], currentUser }: PropertiesClientProps)
 
   const closeModal = () => {
     setModalVisible(false);
-    setSelectedListingId(null);
+    setSelectedListing(null);
     setActiveReservation(null);
   };
 
-  // Offer modal
   const openOfferModal = (id: string, price: number) => {
-    setSelectedListingId(id);
+    setSelectedListing(listings.find((l) => l.id === id) || null);
     setOriginalPrice(price);
     setOfferPrice("");
     setOfferModalVisible(true);
@@ -77,16 +66,25 @@ function PropertiesClient({ listings = [], currentUser }: PropertiesClientProps)
 
   const closeOfferModal = () => {
     setOfferModalVisible(false);
-    setSelectedListingId(null);
+    setSelectedListing(null);
     setOriginalPrice(null);
   };
 
-  const onCancel = useCallback(() => {
-    if (!selectedListingId) return;
+  const openEditModal = (listing: safelisting) => {
+    setSelectedListing(listing);
+    setEditModalVisible(true);
+  };
 
-    setDeletingId(selectedListingId);
+  const closeEditModal = () => {
+    setEditModalVisible(false);
+    setSelectedListing(null);
+  };
+
+  const onCancel = useCallback(() => {
+    if (!selectedListing) return;
+    setDeletingId(selectedListing.id);
     axios
-      .delete(`/api/listings/${selectedListingId}`)
+      .delete(`/api/listings/${selectedListing.id}`)
       .then(() => {
         toast.success("Listing deleted");
         router.refresh();
@@ -99,21 +97,18 @@ function PropertiesClient({ listings = [], currentUser }: PropertiesClientProps)
         setDeletingId("");
         closeModal();
       });
-  }, [router, selectedListingId]);
+  }, [router, selectedListing]);
 
   const onSubmitOffer = useCallback(() => {
-    if (!selectedListingId || offerPrice === "" || originalPrice === null) return;
-
+    if (!selectedListing || offerPrice === "" || originalPrice === null) return;
     const offerPriceNum = Number(offerPrice);
-
     if (offerPriceNum >= originalPrice) {
       toast.error("Offer price must be less than the original price (₹" + originalPrice + ")");
       return;
     }
-
-    setDeletingId(selectedListingId);
+    setDeletingId(selectedListing.id);
     axios
-      .put(`/api/listings/${selectedListingId}/offer`, { offerPrice: offerPriceNum })
+      .put(`/api/listings/${selectedListing.id}/offer`, { offerPrice: offerPriceNum })
       .then(() => {
         toast.success("Offer price updated");
         router.refresh();
@@ -126,14 +121,13 @@ function PropertiesClient({ listings = [], currentUser }: PropertiesClientProps)
         setDeletingId("");
         closeOfferModal();
       });
-  }, [router, selectedListingId, offerPrice, originalPrice]);
+  }, [router, selectedListing, offerPrice, originalPrice]);
 
   const onRemoveOffer = useCallback(() => {
-    if (!selectedListingId) return;
-
-    setDeletingId(selectedListingId);
+    if (!selectedListing) return;
+    setDeletingId(selectedListing.id);
     axios
-      .put(`/api/listings/${selectedListingId}/offer`, { offerPrice: null })
+      .put(`/api/listings/${selectedListing.id}/offer`, { offerPrice: null })
       .then(() => {
         toast.success("Offer removed");
         router.refresh();
@@ -146,12 +140,7 @@ function PropertiesClient({ listings = [], currentUser }: PropertiesClientProps)
         setDeletingId("");
         closeOfferModal();
       });
-  }, [router, selectedListingId]);
-
-  // Add defensive check to ensure listings is an array before calling find
-  const selectedListing = Array.isArray(listings)
-    ? listings.find((listing) => listing.id === selectedListingId)
-    : null;
+  }, [router, selectedListing]);
 
   return (
     <Container>
@@ -165,8 +154,9 @@ function PropertiesClient({ listings = [], currentUser }: PropertiesClientProps)
               actionId={listing.id}
               onAction={() => openModal(listing.id)}
               onOffer={(id, price) => openOfferModal(id, price)}
+              onEdit={(listing) => openEditModal(listing)}
               disabled={deletingId === listing.id}
-              actionLabel="Delete Properties"
+              actionLabel="Delete "
               currentUser={currentUser}
             />
           ))
@@ -215,12 +205,8 @@ function PropertiesClient({ listings = [], currentUser }: PropertiesClientProps)
               <button className="bg-gray-300 text-gray-800 px-4 py-2 rounded-md" onClick={closeOfferModal}>
                 Cancel
               </button>
-              {/* Conditionally render Remove Offer button only if offerPrice exists */}
               {selectedListing?.offerPrice && (
-                <button
-                  className="bg-red-600 text-white px-4 py-2 rounded-md"
-                  onClick={onRemoveOffer}
-                >
+                <button className="bg-red-600 text-white px-4 py-2 rounded-md" onClick={onRemoveOffer}>
                   Remove Offer
                 </button>
               )}
@@ -234,6 +220,15 @@ function PropertiesClient({ listings = [], currentUser }: PropertiesClientProps)
             </div>
           </div>
         </div>
+      )}
+
+      {/* Edit Modal */}
+      {editModalVisible && selectedListing && (
+        <EditModal
+          isOpen={editModalVisible}
+          onClose={closeEditModal}
+          listing={selectedListing}
+        />
       )}
     </Container>
   );

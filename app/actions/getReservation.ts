@@ -11,7 +11,6 @@ export default async function getReservations(params: IParams): Promise<safeRese
   try {
     const { listingId, userId, authorId } = params;
 
-    // Define a more specific type for the query object
     const query: { listingId?: string; userId?: string; listing?: { userId: string } } = {};
 
     if (listingId) {
@@ -28,6 +27,12 @@ export default async function getReservations(params: IParams): Promise<safeRese
       where: query,
       include: {
         listing: true,
+        user: {  // Include user data
+          select: {
+            name: true,
+            email: true,
+          },
+        },
       },
       orderBy: {
         createdAt: 'desc',
@@ -37,18 +42,22 @@ export default async function getReservations(params: IParams): Promise<safeRese
     const safeReservations = reservations.map((reservation) => {
       const reservationCreatedTime = new Date(reservation.createdAt);
       const timeDiff = new Date().getTime() - reservationCreatedTime.getTime();
-      const canCancel = timeDiff <= 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+      const canCancel = timeDiff <= 24 * 60 * 60 * 1000;
 
       return {
         ...reservation,
-        canCancel, // Add the "canCancel" flag dynamically
-        orderId: reservation.orderId ?? 'No Order ID', // Handle null orderId with a fallback
+        canCancel,
+        orderId: reservation.orderId ?? 'No Order ID',
         createdAt: reservation.createdAt.toISOString(),
         startDate: reservation.startDate.toISOString(),
         endDate: reservation.endDate.toISOString(),
         listing: {
           ...reservation.listing,
           createdAt: reservation.listing.createdAt.toISOString(),
+        },
+        user: {  // Add user data to the returned object
+          name: reservation.user?.name || "Unknown User",
+          email: reservation.user?.email || "No email provided",
         },
       } as safeReservations;
     });
@@ -61,11 +70,11 @@ export default async function getReservations(params: IParams): Promise<safeRese
   }
 }
 
+// getCancelledReservations remains unchanged unless you want user data there too
 export async function getCancelledReservations(params: IParams): Promise<SafeCancelledReservations[]> {
   try {
     const { listingId, userId, authorId } = params;
 
-    // Define a more specific type for the query object
     const query: { listingId?: string; userId?: string; listing?: { userId: string } } = {};
 
     if (listingId) {

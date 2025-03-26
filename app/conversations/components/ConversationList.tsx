@@ -41,8 +41,9 @@ function ConversationList({ initialItems }: ConversationListProps) {
         };
 
         const updateHandler = (conversation: FullConversationType) => {
-            setItems((current) =>
-                current.map((currentConversation) => {
+            setItems((current) => {
+                // Update the conversation with new data
+                const updatedItems = current.map((currentConversation) => {
                     if (currentConversation.id === conversation.id) {
                         return {
                             ...currentConversation,
@@ -52,12 +53,18 @@ function ConversationList({ initialItems }: ConversationListProps) {
                         };
                     }
                     return currentConversation;
-                })
-            );
+                });
+
+                // Sort by lastMessageAt in descending order (most recent first)
+                return updatedItems.sort((a, b) => 
+                    new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+                );
+            });
         };
 
         pusherClient.bind("conversation:new", newHandler);
         pusherClient.bind("conversation:update", updateHandler);
+
         return () => {
             pusherClient.unsubscribe(pusherKey);
             pusherClient.unbind("conversation:new", newHandler);

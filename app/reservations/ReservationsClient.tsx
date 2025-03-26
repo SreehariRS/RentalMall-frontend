@@ -38,11 +38,9 @@ function ReservationsClient({ reservations, currentUser }: ReservationsClientPro
         const currentDate = new Date();
         const resDate = new Date(reservationDate);
         
-        // Set time to 0 for both dates to compare only the date part
         currentDate.setHours(0, 0, 0, 0);
         resDate.setHours(0, 0, 0, 0);
 
-        // Return true if current date is strictly greater than reservation date
         return currentDate > resDate;
     }
 
@@ -53,26 +51,36 @@ function ReservationsClient({ reservations, currentUser }: ReservationsClientPro
                 subtitle="Bookings on your Properties"
             />
             <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-8">
-                {
-                    reservations.map((reservation) => {
-                        // Determine if the reservation is expired
-                        const isExpired = isReservationExpired(reservation.endDate);
-                        
-                        return (
+                {reservations.map((reservation) => {
+                    const isExpired = isReservationExpired(reservation.endDate);
+                    
+                    // Assuming safeReservations includes user data (name/email)
+                    const bookingUser = {
+                        name: reservation.user?.name || "Unknown User",
+                        email: reservation.user?.email || "No email provided"
+                    };
+
+                    return (
+                        <div key={reservation.id} className="relative">
                             <ListingCards
-                                key={reservation.id}
                                 data={reservation.listing}
                                 reservation={reservation}
                                 actionId={reservation.id}
                                 onAction={onCancel}
-                                // Disable if either deleting or reservation is expired
                                 disabled={deletingId === reservation.id || isExpired}
                                 actionLabel="cancel guest reservation"
                                 currentUser={currentUser}
                             />
-                        )
-                    })
-                }
+                            {/* Display booking user info below the card */}
+                            <div className="mt-2 text-sm text-gray-600">
+                                <p>
+                                    Booked by: <span className="font-medium">{bookingUser.name}</span>
+                                </p>
+                                <p>Email: <span className="font-medium">{bookingUser.email}</span></p>
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
         </Container>
     )

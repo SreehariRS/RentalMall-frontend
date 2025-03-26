@@ -141,14 +141,14 @@ function ListingClient({ listing, reservations = [], currentUser }: ListingClien
                 disabled={isLoading || isOwnListing}
                 disabledDates={disableDates}
                 listingId={listing.id}
-                currentUser={currentUser} // Pass currentUser to ListingReservation
+                currentUser={currentUser}
               />
             </div>
           </div>
 
           <div className="mt-10">
             <MeetTheHost
-              hostId={listing.user?.id || ""} // Pass hostId from listing.user
+              hostId={listing.user?.id || ""}
               hostName={listing.user?.name || "Host"}
               hostImage={listing.user?.image}
               hostingSince={new Date(listing.user?.createdAt || "2020-01-01").toLocaleDateString()}
@@ -161,7 +161,13 @@ function ListingClient({ listing, reservations = [], currentUser }: ListingClien
           </div>
 
           <div className="mt-10">
-            <Review reviews={reviews} currentUser={currentUser} onReviewChange={fetchReviews} />
+          <Review
+    reviews={reviews}
+    currentUser={currentUser}
+    onReviewChange={fetchReviews}
+    listingId={listing.id}
+    isHost={isOwnListing} 
+  />
           </div>
         </div>
       </div>

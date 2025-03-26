@@ -1,7 +1,6 @@
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-
 const domain = "https://www.rentalmall.site";
 
 export const sendVerificationEmail = async (email: string, token: string) => {
@@ -38,9 +37,50 @@ export const sendVerificationEmail = async (email: string, token: string) => {
   `;
 
   await resend.emails.send({
-    from: "no-reply@rentalmall.site", // ✅ Using the correct sender email
+    from: "no-reply@rentalmall.site",
     to: email,
     subject: "Verify your email - RENTALMALL",
+    html: emailHTML,
+  });
+};
+
+export const sendForgotPasswordEmail = async (email: string, token: string) => {
+  const resetLink = `${domain}/reset-password?token=${token}`;
+
+  const emailHTML = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e5e5e5; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);">
+      <div style="background-color: #4caf50; padding: 20px; text-align: center; color: #fff;">
+        <h1 style="margin: 0; font-size: 24px;">RENTALMALL Password Reset</h1>
+      </div>
+      <div style="padding: 20px; background-color: #ffffff;">
+        <p style="font-size: 16px; margin-bottom: 20px;">Hello,</p>
+        <p style="font-size: 16px; margin-bottom: 20px;">
+          You requested a password reset for your <strong>RENTALMALL</strong> account. Click the button below to reset your password.
+        </p>
+        <p style="text-align: center;">
+          <a 
+            href="${resetLink}" 
+            style="display: inline-block; background-color: #4caf50; color: #ffffff; text-decoration: none; padding: 12px 20px; font-size: 16px; border-radius: 4px; margin-top: 20px;">
+            Reset Password
+          </a>
+        </p>
+        <p style="margin-top: 20px; font-size: 14px; color: #555;">
+          This link will expire in 1 hour. If you did not request a password reset, please ignore this email or contact support.
+        </p>
+        <p style="font-size: 14px; color: #555; word-wrap: break-word;">
+          <a href="${resetLink}" style="color: #4caf50;">${resetLink}</a>
+        </p>
+      </div>
+      <div style="background-color: #f9f9f9; padding: 20px; text-align: center; font-size: 14px; color: #888;">
+        <p style="margin: 0;">© ${new Date().getFullYear()} RENTALMALL. All rights reserved.</p>
+      </div>
+    </div>
+  `;
+
+  await resend.emails.send({
+    from: "no-reply@rentalmall.site",
+    to: email,
+    subject: "Reset Your Password - RENTALMALL",
     html: emailHTML,
   });
 };

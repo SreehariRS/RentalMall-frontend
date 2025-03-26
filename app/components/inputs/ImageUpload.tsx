@@ -1,3 +1,5 @@
+"use client";
+
 import { CldUploadWidget, type CloudinaryUploadWidgetResults } from "next-cloudinary";
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
@@ -15,37 +17,26 @@ const ImageUpload = ({
   value = [],
   maxImages = 5,
 }: ImageUploadProps) => {
-  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [imageUrls, setImageUrls] = useState<string[]>(value);
   const [error, setError] = useState<string>("");
 
+  // Sync internal state with prop changes
   useEffect(() => {
-    if (Array.isArray(value)) {
-      setImageUrls(value);
-    }
+    setImageUrls(value);
   }, [value]);
 
   const handleUpload = useCallback(
     (result: CloudinaryUploadWidgetResults) => {
-      // Ensure the result has the expected structure
       if (result.event !== "success") return;
 
-      // Extract the secure_url from the result.info
       const secureUrl = typeof result.info === "object" && "secure_url" in result.info ? result.info.secure_url : null;
-
       if (!secureUrl || typeof secureUrl !== "string") return;
 
       setImageUrls((prev) => {
-        const combinedUrls = [...prev, secureUrl].slice(0, maxImages);
-
-        // Set error if not enough images
-        if (combinedUrls.length < maxImages) {
-          setError(`Please upload ${maxImages - combinedUrls.length} more images`);
-        } else {
-          setError("");
-        }
-
-        onChange(combinedUrls);
-        return combinedUrls;
+        const updatedUrls = [...prev, secureUrl].slice(0, maxImages);
+        setError(updatedUrls.length < maxImages ? `Please upload ${maxImages - updatedUrls.length} more images` : "");
+        onChange(updatedUrls); // Notify parent of the change
+        return updatedUrls;
       });
     },
     [maxImages, onChange]
@@ -53,15 +44,12 @@ const ImageUpload = ({
 
   const handleRemoveImage = useCallback(
     (indexToRemove: number) => {
-      setImageUrls((prev) => {
-        const updated = prev.filter((_, index) => index !== indexToRemove);
-        // Update error message when image is removed
-        setError(`Please upload ${maxImages - updated.length} more images`);
-        onChange(updated);
-        return updated;
-      });
+      const updatedUrls = imageUrls.filter((_, index) => index !== indexToRemove);
+      setImageUrls(updatedUrls);
+      setError(`Please upload ${maxImages - updatedUrls.length} more images`);
+      onChange(updatedUrls); // Notify parent after updating local state
     },
-    [onChange, maxImages]
+    [imageUrls, maxImages, onChange]
   );
 
   const remainingSlots = maxImages - imageUrls.length;
@@ -78,7 +66,7 @@ const ImageUpload = ({
           <div key={`${url}-${index}`} className="relative group">
             <div className="relative w-full h-64 overflow-hidden rounded-lg">
               <Image
-                alt={`Uploaded Image ${index + 1}`}
+                alt={` uploaded Image ${index + 1}`}
                 src={url}
                 layout="fill"
                 objectFit="cover"

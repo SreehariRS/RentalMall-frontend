@@ -22,7 +22,11 @@ export type safeReservations = Omit<Reservation, "createdAt" | "startDate" | "en
     endDate: string;
     listing: safelisting;
     canCancel?: boolean;
-};
+    user: {  // Add user field
+        name: string;
+        email: string;
+    };
+};;
 
 export type SafeCancelledReservations = Omit<CancelledReservation, "cancelledAt" | "startDate" | "endDate" | "listing"> & {
     cancelledAt: string;

@@ -5,6 +5,7 @@ import { SafeUser, safelisting } from "@/app/types";
 import ListingCards from "./listings/ListingCards";
 import { IlistingsParams } from "@/app/actions/getListings";
 import { toast } from "react-hot-toast";
+import { useSearchParams } from "next/navigation";
 
 interface ClientInfiniteScrollWrapperProps {
   initialListings: safelisting[];
@@ -23,6 +24,9 @@ const ClientInfiniteScrollWrapper: React.FC<ClientInfiniteScrollWrapperProps> = 
   currentUser,
   limit,
 }) => {
+  const searchParams_ = useSearchParams();
+  const category = searchParams_?.get('category');
+
   const [listings, setListings] = useState<safelisting[]>(initialListings);
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [isLoading, setIsLoading] = useState(false);
@@ -30,17 +34,30 @@ const ClientInfiniteScrollWrapper: React.FC<ClientInfiniteScrollWrapperProps> = 
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
+  // Reset listings when category changes
+  useEffect(() => {
+    setListings(initialListings);
+    setCurrentPage(initialPage);
+    setHasMore(initialPage < totalPages);
+  }, [category, initialListings, initialPage, totalPages]);
+
   // Function to fetch more listings
   const fetchMoreListings = async () => {
     if (isLoading || !hasMore) return;
 
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `/api/listings?page=${currentPage + 1}&limit=${limit}&${new URLSearchParams(
-          searchParams as any
-        ).toString()}`
-      );
+      // Construct query parameters
+      const queryParams = new URLSearchParams({
+        page: (currentPage + 1).toString(),
+        limit: limit.toString(),
+        ...(category ? { category } : {}),
+        ...Object.fromEntries(
+          Object.entries(searchParams).filter(([, v]) => v != null)
+        )
+      });
+
+      const response = await fetch(`/api/listings?${queryParams.toString()}`);
       const data = await response.json();
 
       if (data.listings && data.listings.length > 0) {
@@ -76,7 +93,7 @@ const ClientInfiniteScrollWrapper: React.FC<ClientInfiniteScrollWrapperProps> = 
     return () => {
       if (observerRef.current) observerRef.current.disconnect();
     };
-  }, [hasMore, isLoading]);
+  }, [hasMore, isLoading, category]);
 
   return (
     <>
@@ -96,6 +113,11 @@ const ClientInfiniteScrollWrapper: React.FC<ClientInfiniteScrollWrapperProps> = 
           ) : (
             <p>Scroll down to load more</p>
           )}
+        </div>
+      )}
+      {listings.length === 0 && (
+        <div className="text-center py-8 text-neutral-500">
+          No listings found for this category
         </div>
       )}
     </>

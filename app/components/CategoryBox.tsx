@@ -48,8 +48,9 @@ function CategoryBox({ icon: Icon, label, selected }: CategoryBoxProps) {
             { skipNull: true }
         );
 
-        // Navigate to the new URL
+        // Navigate to the new URL and refresh the page
         router.push(url);
+        router.refresh();
     }, [label, params, router]);
 
     return (

@@ -9,14 +9,35 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { listingId, reservationId, rating, title, content } = body;
+  const { listingId, reservationId, rating, title, content, responseToReviewId } = body;
 
+  // If this is a host response
+  if (responseToReviewId) {
+    const listing = await prisma.listing.findUnique({
+      where: { id: listingId },
+    });
+
+    if (!listing || listing.userId !== currentUser.id) {
+      return NextResponse.json({ error: "You can only respond to reviews on your own listings" }, { status: 403 });
+    }
+
+    const reviewResponse = await prisma.reviewResponse.create({
+      data: {
+        reviewId: responseToReviewId,
+        userId: currentUser.id,
+        content,
+      },
+    });
+
+    return NextResponse.json(reviewResponse);
+  }
+
+  // Existing review creation logic
   if (!listingId || !reservationId || !rating || !title || !content) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
   try {
-    // Check if a review already exists for this user and reservation
     const existingReview = await prisma.review.findFirst({
       where: {
         userId: currentUser.id,
@@ -32,7 +53,7 @@ export async function POST(request: Request) {
       data: {
         userId: currentUser.id,
         listingId,
-        reservationId, // Include reservationId
+        reservationId,
         rating,
         title,
         content,
@@ -42,7 +63,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(review);
   } catch (error) {
-    console.error("Error posting review:", error);
+    console.error("Error posting review or response:", error);
     return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
   }
 }
@@ -58,7 +79,14 @@ export async function GET(request: Request) {
   try {
     const reviews = await prisma.review.findMany({
       where: { listingId },
-      include: { user: true },
+      include: {
+        user: true,
+        responses: {
+          include: {
+            user: true, // Include the host user details for responses
+          },
+        },
+      },
       orderBy: { createdAt: "desc" },
     });
 
@@ -72,6 +100,13 @@ export async function GET(request: Request) {
       helpfulCount: review.helpfulCount,
       verified: review.verified,
       userId: review.userId,
+      responses: review.responses.map((response) => ({
+        id: response.id,
+        content: response.content,
+        author: response.user.name || "Host",
+        date: response.createdAt.toISOString(),
+        userId: response.userId,
+      })),
     }));
 
     return NextResponse.json(safeReviews);
@@ -81,6 +116,7 @@ export async function GET(request: Request) {
   }
 }
 
+// DELETE and PUT methods remain unchanged for now
 export async function DELETE(request: Request) {
   const currentUser = await getCurrentUser();
   if (!currentUser) {
