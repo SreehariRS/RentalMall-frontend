@@ -127,7 +127,7 @@ function ListingReservation({
         orderDetails.amount && (
           <RenderRazorpay
             orderId={orderDetails.orderId || ""}
-            keyId={process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!}
+            keyId="rzp_test_rJ0yPg6ZIlUOvq"
             currency={orderDetails.currency || "INR"}
             amount={orderDetails.amount || 0}
             listingId={listingId}
