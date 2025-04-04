@@ -4,11 +4,11 @@ import React, { useState, useCallback, useEffect } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 import ListingCards from "@/app/components/listings/ListingCards";
-import { SafeUser, safelisting } from "@/app/types";
+import { SafeUser, safelisting, safeReservations } from "@/app/types";
 import { useRouter } from "next/navigation";
 import { 
   Camera, Settings, Edit, X, Save, Calendar, Mail, 
-  Check, Plus, Image, Home, User, Shield
+  Check, Plus, Image, Home, User, Shield, DollarSign
 } from "lucide-react";
 import useRentModal from "@/app/hooks/useRentModal";
 
@@ -31,13 +31,14 @@ interface ProfileDetailsClientProps {
 function ProfileDetailsClient({ user, currentUser }: ProfileDetailsClientProps) {
   const router = useRouter();
   const rentModal = useRentModal();
-  const [activeTab, setActiveTab] = useState<"about" | "listings">("about");
+  const [activeTab, setActiveTab] = useState<"about" | "listings" | "payments">("about");
   const [isEditingAbout, setIsEditingAbout] = useState(false);
   const [aboutText, setAboutText] = useState(user.about);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isRestricted, setIsRestricted] = useState(false);
+  const [payments, setPayments] = useState<safeReservations[]>([]); // New state for payments
 
   // Fetch restriction status
   useEffect(() => {
@@ -56,6 +57,23 @@ function ProfileDetailsClient({ user, currentUser }: ProfileDetailsClientProps) 
       fetchRestrictionStatus();
     }
   }, [currentUser]);
+
+  // Fetch payment data when switching to payments tab
+  useEffect(() => {
+    const fetchPayments = async () => {
+      if (activeTab !== "payments" || !currentUser?.id) return;
+
+      try {
+        const response = await axios.get(`/api/reservations?authorId=${currentUser.id}`);
+        setPayments(response.data);
+      } catch (error) {
+        console.error("Failed to fetch payments:", error);
+        toast.error("Failed to load payment history");
+      }
+    };
+
+    fetchPayments();
+  }, [activeTab, currentUser]);
 
   const handleSaveAbout = useCallback(async () => {
     setIsSaving(true);
@@ -152,10 +170,8 @@ function ProfileDetailsClient({ user, currentUser }: ProfileDetailsClientProps) 
         {/* Profile header */}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           <div className="relative h-40 bg-gray-200">
-            {/* Cover photo area - Rose theme */}
             <div className="absolute inset-0 bg-gradient-to-r from-rose-600 to-rose-400 opacity-90"></div>
             
-            {/* Settings button */}
             <div className="absolute top-4 right-4">
               <button
                 onClick={toggleDropdown}
@@ -181,9 +197,7 @@ function ProfileDetailsClient({ user, currentUser }: ProfileDetailsClientProps) 
             </div>
           </div>
           
-          {/* Profile info section */}
           <div className="px-6 sm:px-8 relative">
-            {/* Profile image */}
             <div className="relative -mt-16 mb-4">
               <div className="relative h-32 w-32 rounded-full overflow-hidden border-4 border-white shadow-md bg-white group">
                 <img
@@ -209,7 +223,6 @@ function ProfileDetailsClient({ user, currentUser }: ProfileDetailsClientProps) 
               </div>
             </div>
             
-            {/* User info */}
             <div className="pb-6 sm:flex sm:items-end sm:justify-between border-b">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">{user.fullName}</h1>
@@ -225,7 +238,6 @@ function ProfileDetailsClient({ user, currentUser }: ProfileDetailsClientProps) 
                 </div>
               </div>
               
-              {/* Stats */}
               <div className="mt-4 sm:mt-0 flex gap-4">
                 <div className="text-center">
                   <p className="text-xl font-bold text-rose-600">{user.totalListings}</p>
@@ -263,6 +275,17 @@ function ProfileDetailsClient({ user, currentUser }: ProfileDetailsClientProps) 
               <Home className={`w-4 h-4 ${activeTab === "listings" ? "text-rose-600" : "text-gray-400"}`} />
               Listings
             </button>
+            <button
+              onClick={() => setActiveTab("payments")}
+              className={`flex items-center gap-2 px-4 py-4 font-medium text-sm transition-colors ${
+                activeTab === "payments"
+                  ? "text-rose-600 border-b-2 border-rose-600"
+                  : "text-gray-500 hover:text-gray-800"
+              }`}
+            >
+              <DollarSign className={`w-4 h-4 ${activeTab === "payments" ? "text-rose-600" : "text-gray-400"}`} />
+              Payments
+            </button>
           </div>
         </div>
 
@@ -271,7 +294,6 @@ function ProfileDetailsClient({ user, currentUser }: ProfileDetailsClientProps) 
           {/* About Tab */}
           {activeTab === "about" && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* About Me Section */}
               <div className="md:col-span-2 bg-white rounded-xl shadow-sm overflow-hidden">
                 <div className="flex justify-between items-center px-6 py-4 border-b">
                   <h2 className="text-lg font-medium text-gray-900">About Me</h2>
@@ -330,7 +352,6 @@ function ProfileDetailsClient({ user, currentUser }: ProfileDetailsClientProps) 
                 </div>
               </div>
               
-              {/* Verification Section */}
               <div className="bg-white rounded-xl shadow-sm overflow-hidden h-fit">
                 <div className="px-6 py-4 border-b">
                   <h2 className="text-lg font-medium text-gray-900">Verification</h2>
@@ -382,7 +403,6 @@ function ProfileDetailsClient({ user, currentUser }: ProfileDetailsClientProps) 
                   </button>
                 </div>
               ) : (
-                /* Reduced size of listings - 5 columns on extra large screens instead of 4 */
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                   {user.listings.map((listing) => (
                     <div key={listing.id} className="transition-transform hover:-translate-y-1 duration-200">
@@ -392,6 +412,51 @@ function ProfileDetailsClient({ user, currentUser }: ProfileDetailsClientProps) 
                 </div>
               )}
             </>
+          )}
+
+          {/* Payments Tab */}
+          {activeTab === "payments" && (
+            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b">
+                <h2 className="text-xl font-medium text-gray-900">Payment History</h2>
+              </div>
+              <div className="p-6">
+                {payments.length === 0 ? (
+                  <div className="text-center py-8">
+                    <DollarSign className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No payments yet</h3>
+                    <p className="text-gray-500">You haven’t earned any payments from bookings yet.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-4 gap-4 text-sm font-medium text-gray-700 border-b pb-2">
+                      <div>Booked By</div>
+                      <div>Email</div>
+                      <div>Property</div>
+                      <div className="text-right">Amount Earned</div>
+                    </div>
+                    {payments.map((payment) => (
+                      <div
+                        key={payment.id}
+                        className="grid grid-cols-4 gap-4 text-sm text-gray-600 border-b py-2"
+                      >
+                        <div>{payment.user.name}</div>
+                        <div>{payment.user.email}</div>
+                        <div>{payment.listing.title}</div>
+                        <div className="text-right font-medium text-rose-600">
+                          ₹{payment.totalPrice.toLocaleString()}
+                        </div>
+                      </div>
+                    ))}
+                    <div className="text-right pt-4">
+                      <p className="text-lg font-semibold text-gray-900">
+                        Total Earned: ₹{payments.reduce((acc, p) => acc + p.totalPrice, 0).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
         </div>
       </div>

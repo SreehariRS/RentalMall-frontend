@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/app/libs/prismadb";
 import getCurrentUser from "@/app/actions/getCurrentUser";
+import getReservations from "@/app/actions/getReservation";
 
 export async function POST(request: Request) {
   const currentUser = await getCurrentUser();
@@ -18,7 +19,6 @@ export async function POST(request: Request) {
   const newStartDate = new Date(startDate);
   const newEndDate = new Date(endDate);
 
-  // Fetch existing reservations for the listing
   const existingReservations = await prisma.reservation.findMany({
     where: {
       listingId: listingId,
@@ -79,6 +79,33 @@ export async function POST(request: Request) {
         success: false,
         error: "Failed to create reservation",
       },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(request: Request) {
+  try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const authorId = searchParams.get("authorId");
+
+    if (!authorId) {
+      return NextResponse.json({ error: "Author ID is required" }, { status: 400 });
+    }
+
+    // Fetch reservations where the current user is the listing owner
+    const reservations = await getReservations({ authorId });
+
+    return NextResponse.json(reservations);
+  } catch (error) {
+    console.error("Error fetching reservations:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch reservations" },
       { status: 500 }
     );
   }

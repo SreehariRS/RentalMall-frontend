@@ -322,3 +322,62 @@ export const updateOfferPrice = async (listingId: string, offerPrice: number | n
 
 
 };
+export const forgotPassword = async (email: string) => {
+  try {
+    const response = await userAxiosInstance.post("/api/forgot-password", { email });
+    return response.data;
+  } catch (error: any) {
+    console.error("Error in forgotPassword:", error.response?.data || error.message);
+    return { error: true, message: error.response?.data?.error || "Failed to send reset link." };
+  }
+};
+
+export const updateListingPrice = async (listingId: string, price: number) => {
+  try {
+    const response = await userAxiosInstance.put(`/api/listings/${listingId}/price`, { price });
+    return response.data;
+  } catch (error: any) {
+    console.error("Error updating listing price:", error.response?.data || error.message);
+    return { error: true, message: error.response?.data?.error || "Failed to update price." };
+  }
+};
+
+export const deleteListing = async (listingId: string) => {
+  try {
+    const response = await userAxiosInstance.delete(`/api/listings/${listingId}`);
+    return response.data;
+  } catch (error: any) {
+    console.error("Error deleting listing:", error.response?.data || error.message);
+    return { error: true, message: error.response?.data?.error || "Failed to delete listing." };
+  }
+};
+
+export const updateListing = async (listingId: string, listingData: any) => {
+  try {
+    const response = await userAxiosInstance.put(`/api/listings/${listingId}`, listingData);
+    return response.data;
+  } catch (error: any) {
+    console.error("Error updating listing:", error.response?.data || error.message);
+    return { error: true, message: error.response?.data?.error || "Failed to update listing." };
+  }
+};
+
+export const resetPassword = async (token: string, password: string) => {
+  try {
+    const response = await userAxiosInstance.post("/api/reset-password", { token, password });
+    return response.data;
+  } catch (error: any) {
+    console.error("Error resetting password:", error.response?.data || error.message);
+    return { error: true, message: error.response?.data?.error || "Failed to reset password." };
+  }
+};
+
+export const createReviewOrResponse = async (reviewData: any) => {
+  try {
+    const response = await userAxiosInstance.post("/api/reviews", reviewData);
+    return response.data;
+  } catch (error: any) {
+    console.error("Error creating review/response:", error.response?.data || error.message);
+    return { error: true, message: error.response?.data?.error || "Failed to create review/response." };
+  }
+};
