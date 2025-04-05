@@ -32,6 +32,9 @@ function ConversationBox({ data, selected }: ConversationBoxProps) {
         if (lastMessage?.image) {
             return "Sent an Image";
         }
+        if (lastMessage?.voice) {
+            return "Sent an Audio";
+        }
         if (lastMessage?.body) {
             return lastMessage.body;
         }

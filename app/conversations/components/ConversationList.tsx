@@ -42,12 +42,18 @@ function ConversationList({ initialItems }: ConversationListProps) {
 
         const updateHandler = (conversation: FullConversationType) => {
             setItems((current) => {
-                // Update the conversation with new data
                 const updatedItems = current.map((currentConversation) => {
                     if (currentConversation.id === conversation.id) {
+                        // Replace or append the latest message to the messages array
+                        const existingMessages = currentConversation.messages || [];
+                        const newMessages = conversation.messages || [];
+                        const updatedMessages = [
+                            ...existingMessages.filter((msg) => !find(newMessages, { id: msg.id })),
+                            ...newMessages
+                        ];
                         return {
                             ...currentConversation,
-                            messages: conversation.messages || currentConversation.messages,
+                            messages: updatedMessages,
                             lastMessageAt: conversation.lastMessageAt || currentConversation.lastMessageAt,
                             users: currentConversation.users,
                         };
@@ -55,7 +61,7 @@ function ConversationList({ initialItems }: ConversationListProps) {
                     return currentConversation;
                 });
 
-                // Sort by lastMessageAt in descending order (most recent first)
+                // Sort by lastMessageAt in descending order
                 return updatedItems.sort((a, b) => 
                     new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
                 );

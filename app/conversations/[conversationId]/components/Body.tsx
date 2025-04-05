@@ -24,7 +24,14 @@ function Body({ initialMessages }: BodyProps) {
 
     const messageHandler = (message: FullMessageType) => {
       setMessages((current) => {
-        if (find(current, { id: message.id })) return current;
+        const existingMessage = find(current, { id: message.id });
+        if (existingMessage) {
+          // If message exists, update it with new data (e.g., sender image)
+          return current.map((msg) =>
+            msg.id === message.id ? { ...msg, ...message } : msg
+          );
+        }
+        // Add new message with full sender data
         return [...current, message];
       });
       bottomRef?.current?.scrollIntoView();

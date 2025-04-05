@@ -26,7 +26,7 @@ export async function POST(request: Request) {
                 }
             },
             include: {
-                sender: true
+                sender: true // Ensure sender includes all fields (e.g., image)
             }
         });
 
@@ -42,12 +42,13 @@ export async function POST(request: Request) {
                 users: true,
                 messages: {
                     take: 1,
-                    orderBy: { createdAt: 'desc' }
+                    orderBy: { createdAt: 'desc' },
+                    include: { sender: true }
                 }
             }
         });
 
-        // Simplify the Pusher payload to avoid 413 error
+        // Trigger new message event with full sender data
         await pusherServer.trigger(conversationId, 'messages:new', {
             id: newMessage.id,
             body: newMessage.body,
@@ -57,23 +58,31 @@ export async function POST(request: Request) {
             sender: {
                 id: newMessage.sender.id,
                 name: newMessage.sender.name,
-                email: newMessage.sender.email
+                email: newMessage.sender.email,
+                image: newMessage.sender.image // Explicitly include image
             }
         });
 
+        // Trigger conversation update with full message data
         const lastMessage = updatedConversation.messages[0];
         updatedConversation.users.forEach((user) => {
             if (user.email) {
                 pusherServer.trigger(user.email, "conversation:update", {
                     id: conversationId,
                     lastMessageAt: updatedConversation.lastMessageAt,
-                    lastMessage: {
+                    messages: [{
                         id: lastMessage.id,
                         body: lastMessage.body,
                         image: lastMessage.image,
                         voice: lastMessage.voice,
-                        createdAt: lastMessage.createdAt
-                    }
+                        createdAt: lastMessage.createdAt,
+                        sender: {
+                            id: lastMessage.sender.id,
+                            name: lastMessage.sender.name,
+                            email: lastMessage.sender.email,
+                            image: lastMessage.sender.image // Explicitly include image
+                        }
+                    }]
                 });
             }
         });
