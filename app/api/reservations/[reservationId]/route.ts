@@ -49,6 +49,16 @@ export async function DELETE(request: Request, context: any) {
         },
       });
 
+      // Create a wallet transaction for the refund
+      await prisma.walletTransaction.create({
+        data: {
+          walletId: updatedWallet.id,
+          amount: reservation.totalPrice,
+          type: "CREDIT",
+          description: `Refund for cancellation of reservation ${reservation.id}`,
+        },
+      });
+
       await prisma.cancelledReservation.create({
         data: {
           reservationId: reservation.id,

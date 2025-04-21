@@ -35,3 +35,32 @@ export async function getWalletBalance(userId: string) {
   const wallet = await getOrCreateWallet(userId);
   return wallet.balance;
 }
+
+export async function getWalletTransactions(userId: string) {
+  try {
+    const wallet = await prisma.wallet.findUnique({
+      where: { userId },
+      include: {
+        transactions: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+      },
+    });
+
+    if (!wallet) {
+      throw new Error("Wallet not found");
+    }
+
+    return wallet.transactions.map((transaction) => ({
+      ...transaction,
+      createdAt: transaction.createdAt.toISOString(),
+    }));
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to fetch wallet transactions: ${error.message}`);
+    }
+    throw new Error("Failed to fetch wallet transactions: Unknown error occurred");
+  }
+}

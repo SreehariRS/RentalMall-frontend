@@ -169,7 +169,19 @@ model Wallet {
   balance    Float     @default(0.0) 
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
+  transactions  WalletTransaction[] // Relation to transactions
 }
+
+model WalletTransaction {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  walletId    String    @db.ObjectId
+  amount      Float
+  type        String    // e.g., 'CREDIT', 'DEBIT'
+  description String?   // e.g., 'Refund for reservation cancellation', 'Payment for booking'
+  createdAt   DateTime  @default(now())
+  wallet      Wallet    @relation(fields: [walletId], references: [id], onDelete: Cascade)
+}
+
 model Review {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   userId      String   @db.ObjectId
