@@ -1,13 +1,14 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation"; // Add useRouter
+import { useRouter } from "next/navigation"; 
 import Sidebar from "../../components/Sidebar";
 import { FaUserCircle } from "react-icons/fa";
 import { getAllUsers, blockUser, unblockUser } from "@/services/adminApi";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { useAuth } from "../../hooks/useAuth"; // Add useAuth
+import { useAuth } from "../../hooks/useAuth"; 
+import debounce from "lodash/debounce";
 
 interface User {
   id: string;
@@ -55,20 +56,17 @@ function UserManagement() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const router = useRouter();
   const { isAuthenticated, loading: authLoading } = useAuth();
 
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push("/admin");
-      return;
-    }
-
-    const fetchUsers = async () => {
+  // Debounced function to fetch users
+  const fetchUsers = useCallback(
+    debounce(async (page: number, query: string) => {
       setError(null);
       setLoading(true);
       try {
-        const response = await getAllUsers(currentPage);
+        const response = await getAllUsers(page, 8, query);
         if (!response.error && response.data) {
           setUserData(response.data);
           setTotalPages(response.totalPages);
@@ -83,10 +81,18 @@ function UserManagement() {
       } finally {
         setLoading(false);
       }
-    };
+    }, 500),
+    []
+  );
 
-    if (isAuthenticated) fetchUsers();
-  }, [currentPage, isAuthenticated, authLoading, router]);
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.push("/admin");
+      return;
+    }
+
+    if (isAuthenticated) fetchUsers(currentPage, searchQuery);
+  }, [currentPage, searchQuery, isAuthenticated, authLoading, router, fetchUsers]);
 
   async function handleToggle(id: string, isBlocked: boolean): Promise<void> {
     setActionLoading(id);
@@ -245,6 +251,17 @@ function UserManagement() {
 
       <main className="flex-1 p-6">
         <h1 className="text-3xl font-bold text-gray-100 mb-6">User Management</h1>
+
+        {/* Search Input */}
+        <div className="mb-6">
+          <input
+            type="text"
+            placeholder="Search users by name or email..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full max-w-md px-4 py-2 rounded-md bg-gray-800 text-gray-300 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
 
         {error && <p className="text-red-500 mb-4">{error}</p>}
 

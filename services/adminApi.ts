@@ -50,9 +50,9 @@ export const loginAdmin = async (email: string, password: string) => {
   }
 };
 
-export const getAllUsers = async (page: number = 1, limit: number = 8) => {
+export const getAllUsers = async (page: number = 1, limit: number = 8, search: string = "") => {
   try {
-    const response = await axiosInstance.get(`/api/admin/users?page=${page}&limit=${limit}`);
+    const response = await axiosInstance.get(`/api/admin/users?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`);
     return response.data;
   } catch (error: any) {
     console.error("Error in fetching users:", error);
