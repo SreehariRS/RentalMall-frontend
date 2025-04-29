@@ -1,13 +1,13 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation"; 
+import { useRouter } from "next/navigation";
 import Sidebar from "../../components/Sidebar";
 import { FaUserCircle } from "react-icons/fa";
 import { getAllUsers, blockUser, unblockUser } from "@/services/adminApi";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { useAuth } from "../../hooks/useAuth"; 
+import { useAuth } from "../../hooks/useAuth";
 import debounce from "lodash/debounce";
 
 interface User {
@@ -63,10 +63,12 @@ function UserManagement() {
   // Debounced function to fetch users
   const fetchUsers = useCallback(
     debounce(async (page: number, query: string) => {
+      console.log("Fetching users with:", { page, query }); // Debug log
       setError(null);
       setLoading(true);
       try {
-        const response = await getAllUsers(page, 8, query);
+        const response = await getAllUsers(page, 8, query.trim());
+        console.log("API response:", response); // Debug log
         if (!response.error && response.data) {
           setUserData(response.data);
           setTotalPages(response.totalPages);
@@ -76,6 +78,7 @@ function UserManagement() {
         }
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : "Failed to fetch users";
+        console.error("Fetch users error:", error); // Debug log
         setError(message);
         setUserData([]);
       } finally {
@@ -91,7 +94,10 @@ function UserManagement() {
       return;
     }
 
-    if (isAuthenticated) fetchUsers(currentPage, searchQuery);
+    if (isAuthenticated) {
+      console.log("Triggering fetchUsers with:", { currentPage, searchQuery }); // Debug log
+      fetchUsers(currentPage, searchQuery);
+    }
   }, [currentPage, searchQuery, isAuthenticated, authLoading, router, fetchUsers]);
 
   async function handleToggle(id: string, isBlocked: boolean): Promise<void> {
@@ -116,6 +122,11 @@ function UserManagement() {
       setActionLoading(null);
     }
   }
+
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    setCurrentPage(1); // Reset to first page
+  };
 
   const Pagination = () => (
     <div className="flex justify-center items-center space-x-4 mt-6">
@@ -253,7 +264,7 @@ function UserManagement() {
         <h1 className="text-3xl font-bold text-gray-100 mb-6">User Management</h1>
 
         {/* Search Input */}
-        <div className="mb-6">
+        <div className="mb-6 flex items-center space-x-4">
           <input
             type="text"
             placeholder="Search users by name or email..."
@@ -261,6 +272,14 @@ function UserManagement() {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full max-w-md px-4 py-2 rounded-md bg-gray-800 text-gray-300 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+          {searchQuery && (
+            <button
+              onClick={handleClearSearch}
+              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+            >
+              Clear
+            </button>
+          )}
         </div>
 
         {error && <p className="text-red-500 mb-4">{error}</p>}
