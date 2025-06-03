@@ -50,12 +50,13 @@ const ToggleSwitch = ({
 
 function UserManagement() {
   const [userData, setUserData] = useState<User[]>([]);
+  const [filteredUserData, setFilteredUserData] = useState<User[]>([]); // Add state for filtered users
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState<string>(""); // Add search state
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const router = useRouter();
   const { isAuthenticated, loading: authLoading } = useAuth();
 
@@ -69,25 +70,39 @@ function UserManagement() {
       setError(null);
       setLoading(true);
       try {
-        const response = await getAllUsers(currentPage, 8, searchQuery); // Add searchQuery
+        const response = await getAllUsers(currentPage, 8); // Remove searchQuery from API call
         if (!response.error && response.data) {
           setUserData(response.data);
+          setFilteredUserData(response.data); // Initialize filtered data
           setTotalPages(response.totalPages);
         } else {
           setError(response.message || "Failed to fetch users");
           setUserData([]);
+          setFilteredUserData([]);
         }
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : "Failed to fetch users";
         setError(message);
         setUserData([]);
+        setFilteredUserData([]);
       } finally {
         setLoading(false);
       }
     };
 
     if (isAuthenticated) fetchUsers();
-  }, [currentPage, isAuthenticated, authLoading, router, searchQuery]); // Add searchQuery to dependencies
+  }, [currentPage, isAuthenticated, authLoading, router]);
+
+  // Filter users based on search query
+  useEffect(() => {
+    const filtered = userData.filter(
+      (user) =>
+        user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    setFilteredUserData(filtered);
+    setCurrentPage(1); // Reset to first page on search
+  }, [searchQuery, userData]);
 
   async function handleToggle(id: string, isBlocked: boolean): Promise<void> {
     setActionLoading(id);
@@ -103,6 +118,9 @@ function UserManagement() {
       setUserData((prevState) =>
         prevState.map((user) => (user.id === id ? { ...user, isBlocked: !isBlocked } : user))
       );
+      setFilteredUserData((prevState) =>
+        prevState.map((user) => (user.id === id ? { ...user, isBlocked: !isBlocked } : user))
+      );
     } catch (error: unknown) {
       console.error("Error toggling block status:", error);
       toast.error("Failed to update block status. Please try again.");
@@ -112,10 +130,8 @@ function UserManagement() {
     }
   }
 
-  // Handle search input change
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
-    setCurrentPage(1); // Reset to first page on search
   };
 
   const Pagination = () => (
@@ -181,14 +197,14 @@ function UserManagement() {
                 </tr>
               </thead>
               <tbody className="bg-gray-800 divide-y divide-gray-700">
-                {userData.length === 0 ? (
+                {filteredUserData.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
                       No users found.
                     </td>
                   </tr>
                 ) : (
-                  userData.map((user) => (
+                  filteredUserData.map((user) => (
                     <tr key={user.id}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
@@ -253,7 +269,6 @@ function UserManagement() {
       <main className="flex-1 p-6">
         <h1 className="text-3xl font-bold text-gray-100 mb-6">User Management</h1>
 
-        {/* Add Search Input */}
         <div className="mb-6">
           <input
             type="text"
