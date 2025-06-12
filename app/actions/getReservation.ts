@@ -39,28 +39,37 @@ export default async function getReservations(params: IParams): Promise<safeRese
       },
     });
 
-    const safeReservations = reservations.map((reservation) => {
-      const reservationCreatedTime = new Date(reservation.createdAt);
-      const timeDiff = new Date().getTime() - reservationCreatedTime.getTime();
-      const canCancel = timeDiff <= 24 * 60 * 60 * 1000;
+    const safeReservations = reservations
+      .filter((reservation) => {
+        // Skip reservations where listing is null (shouldn't happen due to schema constraints)
+        if (!reservation.listing) {
+          console.warn(`Reservation ${reservation.id} has no associated listing. Skipping.`);
+          return false;
+        }
+        return true;
+      })
+      .map((reservation) => {
+        const reservationCreatedTime = new Date(reservation.createdAt);
+        const timeDiff = new Date().getTime() - reservationCreatedTime.getTime();
+        const canCancel = timeDiff <= 24 * 60 * 60 * 1000;
 
-      return {
-        ...reservation,
-        canCancel,
-        orderId: reservation.orderId ?? 'No Order ID',
-        createdAt: reservation.createdAt.toISOString(),
-        startDate: reservation.startDate.toISOString(),
-        endDate: reservation.endDate.toISOString(),
-        listing: {
-          ...reservation.listing,
-          createdAt: reservation.listing.createdAt.toISOString(),
-        },
-        user: {
-          name: reservation.user?.name || "Unknown User",
-          email: reservation.user?.email || "No email provided",
-        },
-      } as safeReservations;
-    });
+        return {
+          ...reservation,
+          canCancel,
+          orderId: reservation.orderId ?? 'No Order ID',
+          createdAt: reservation.createdAt.toISOString(),
+          startDate: reservation.startDate.toISOString(),
+          endDate: reservation.endDate.toISOString(),
+          listing: {
+            ...reservation.listing,
+            createdAt: reservation.listing.createdAt.toISOString(),
+          },
+          user: {
+            name: reservation.user?.name || "Unknown User",
+            email: reservation.user?.email || "No email provided",
+          },
+        } as safeReservations;
+      });
 
     return safeReservations;
   } catch (error: unknown) {
@@ -124,7 +133,6 @@ export async function getRevenue(authorId: string): Promise<{
       throw new Error("Author ID is required");
     }
 
-    // Fetch all successful reservations for the host's listings
     const reservations = await prisma.reservation.findMany({
       where: {
         listing: { userId: authorId },
@@ -140,12 +148,10 @@ export async function getRevenue(authorId: string): Promise<{
       },
     });
 
-    // Calculate total revenue and revenue per property
     const revenueByPropertyMap = new Map<string, { title: string; revenue: number }>();
     let totalRevenue = 0;
 
     for (const reservation of reservations) {
-      // Check if listing exists
       if (!reservation.listing) {
         console.warn(`Reservation ${reservation.id} has no associated listing. Skipping.`);
         continue;
@@ -165,7 +171,6 @@ export async function getRevenue(authorId: string): Promise<{
       }
     }
 
-    // Convert map to array for response
     const revenueByProperty = Array.from(revenueByPropertyMap.entries()).map(
       ([listingId, { title, revenue }]) => ({
         listingId,
