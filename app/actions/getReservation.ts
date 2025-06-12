@@ -128,7 +128,7 @@ export async function getRevenue(authorId: string): Promise<{
     const reservations = await prisma.reservation.findMany({
       where: {
         listing: { userId: authorId },
-        status: "success", // Only include successful payments
+        status: "success",
       },
       include: {
         listing: {
@@ -145,6 +145,12 @@ export async function getRevenue(authorId: string): Promise<{
     let totalRevenue = 0;
 
     for (const reservation of reservations) {
+      // Check if listing exists
+      if (!reservation.listing) {
+        console.warn(`Reservation ${reservation.id} has no associated listing. Skipping.`);
+        continue;
+      }
+
       const listingId = reservation.listing.id;
       const title = reservation.listing.title;
       const revenue = reservation.totalPrice;
