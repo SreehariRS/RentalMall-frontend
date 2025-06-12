@@ -27,7 +27,7 @@ export default async function getReservations(params: IParams): Promise<safeRese
       where: query,
       include: {
         listing: true,
-        user: {  // Include user data
+        user: {
           select: {
             name: true,
             email: true,
@@ -55,7 +55,7 @@ export default async function getReservations(params: IParams): Promise<safeRese
           ...reservation.listing,
           createdAt: reservation.listing.createdAt.toISOString(),
         },
-        user: {  // Add user data to the returned object
+        user: {
           name: reservation.user?.name || "Unknown User",
           email: reservation.user?.email || "No email provided",
         },
@@ -70,7 +70,6 @@ export default async function getReservations(params: IParams): Promise<safeRese
   }
 }
 
-// getCancelledReservations remains unchanged unless you want user data there too
 export async function getCancelledReservations(params: IParams): Promise<SafeCancelledReservations[]> {
   try {
     const { listingId, userId, authorId } = params;
@@ -113,5 +112,69 @@ export async function getCancelledReservations(params: IParams): Promise<SafeCan
     const err = error as Error;
     console.error("Error fetching cancelled reservations:", err.message);
     throw new Error(`Failed to fetch cancelled reservations: ${err.message}`);
+  }
+}
+
+export async function getRevenue(authorId: string): Promise<{
+  totalRevenue: number;
+  revenueByProperty: { listingId: string; title: string; revenue: number }[];
+}> {
+  try {
+    if (!authorId) {
+      throw new Error("Author ID is required");
+    }
+
+    // Fetch all successful reservations for the host's listings
+    const reservations = await prisma.reservation.findMany({
+      where: {
+        listing: { userId: authorId },
+        status: "success", // Only include successful payments
+      },
+      include: {
+        listing: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+      },
+    });
+
+    // Calculate total revenue and revenue per property
+    const revenueByPropertyMap = new Map<string, { title: string; revenue: number }>();
+    let totalRevenue = 0;
+
+    for (const reservation of reservations) {
+      const listingId = reservation.listing.id;
+      const title = reservation.listing.title;
+      const revenue = reservation.totalPrice;
+
+      totalRevenue += revenue;
+
+      const existing = revenueByPropertyMap.get(listingId);
+      if (existing) {
+        existing.revenue += revenue;
+      } else {
+        revenueByPropertyMap.set(listingId, { title, revenue });
+      }
+    }
+
+    // Convert map to array for response
+    const revenueByProperty = Array.from(revenueByPropertyMap.entries()).map(
+      ([listingId, { title, revenue }]) => ({
+        listingId,
+        title,
+        revenue,
+      })
+    );
+
+    return {
+      totalRevenue,
+      revenueByProperty,
+    };
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error("Error fetching revenue:", err.message);
+    throw new Error(`Failed to fetch revenue: ${err.message}`);
   }
 }
