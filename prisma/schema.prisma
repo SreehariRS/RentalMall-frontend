@@ -134,7 +134,7 @@ model Listing {
 model Reservation {
   id          String      @id @default(auto()) @map("_id") @db.ObjectId
   userId      String      @db.ObjectId
-  listingId   String?      @db.ObjectId
+  listingId   String      @db.ObjectId
   startDate   DateTime
   endDate     DateTime
   totalPrice  Int
@@ -144,7 +144,7 @@ model Reservation {
   createdAt   DateTime   @default(now())
   reviews     Review[]
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  listing     Listing?     @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listing     Listing     @relation(fields: [listingId], references: [id], onDelete: Cascade)
 }
 
 model CancelledReservation {
