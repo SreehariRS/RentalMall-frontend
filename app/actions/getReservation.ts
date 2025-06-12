@@ -61,8 +61,8 @@ export default async function getReservations(params: IParams): Promise<safeRese
           startDate: reservation.startDate.toISOString(),
           endDate: reservation.endDate.toISOString(),
           listing: {
-            ...reservation.listing,
-            createdAt: reservation.listing.createdAt.toISOString(),
+            ...reservation.listing!,
+            createdAt: reservation.listing!.createdAt.toISOString(),
           },
           user: {
             name: reservation.user?.name || "Unknown User",
