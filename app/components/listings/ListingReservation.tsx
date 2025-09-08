@@ -3,12 +3,12 @@ import { Range } from "react-date-range";
 import Calendar from "../inputs/Calendar";
 import Button from "../Button";
 import RenderRazorpay from "../renderRazorpay";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createOrder } from "@/services/userApi";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import useLoginModal from "@/app/hooks/useLoginModal"; // Import the login modal hook
-import { SafeUser } from "@/app/types"; // Import SafeUser type for currentUser
+import useLoginModal from "@/app/hooks/useLoginModal";
+import { SafeUser } from "@/app/types";
 
 interface ListingReservationProps {
   price: number;
@@ -20,7 +20,7 @@ interface ListingReservationProps {
   disabled?: boolean;
   disabledDates: Date[];
   listingId: string;
-  currentUser?: SafeUser | null; // Add currentUser prop to check if user is logged in
+  currentUser?: SafeUser | null;
 }
 
 function ListingReservation({
@@ -33,7 +33,7 @@ function ListingReservation({
   disabled,
   disabledDates,
   listingId,
-  currentUser, // Destructure the new prop
+  currentUser,
 }: ListingReservationProps) {
   const [displayRazorpay, setDisplayRazorpay] = useState(false);
   const [orderDetails, setOrderDetails] = useState({
@@ -41,20 +41,131 @@ function ListingReservation({
     currency: null as string | null,
     amount: null as number | null,
   });
+  const [isPaymentLocked, setIsPaymentLocked] = useState(false);
   const router = useRouter();
-  const loginModal = useLoginModal(); // Initialize the login modal hook
+  const loginModal = useLoginModal();
 
   const displayPrice =
     offerPrice !== undefined && offerPrice !== null ? offerPrice : price;
 
-  // Handle the Reserve button click
+  useEffect(() => {
+    if (currentUser?.id) {
+      const lockKey = `paymentLock_${currentUser.id}`;
+      const lock = localStorage.getItem(lockKey);
+      
+      if (lock) {
+        try {
+          const lockData = JSON.parse(lock);
+          const lockTime = new Date(lockData.timestamp).getTime();
+          const currentTime = new Date().getTime();
+          
+        
+          if (currentTime - lockTime > 10 * 60 * 1000) {
+            localStorage.removeItem(lockKey);
+            setIsPaymentLocked(false);
+          } else {
+            setIsPaymentLocked(true);
+          }
+        } catch (error) {
+          console.error("Error parsing lock data:", error);
+          localStorage.removeItem(lockKey);
+          setIsPaymentLocked(false);
+        }
+      } else {
+        setIsPaymentLocked(false);
+      }
+    }
+  }, [currentUser?.id]);
+
+
+  const setPaymentLock = (locked: boolean) => {
+    if (currentUser?.id) {
+      const lockKey = `paymentLock_${currentUser.id}`;
+      
+      if (locked) {
+        const lockData = {
+          locked: true,
+          timestamp: new Date().toISOString(),
+          listingId: listingId
+        };
+        localStorage.setItem(lockKey, JSON.stringify(lockData));
+        setIsPaymentLocked(true);
+      } else {
+        localStorage.removeItem(lockKey);
+        setIsPaymentLocked(false);
+      }
+      
+
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: lockKey,
+        newValue: locked ? JSON.stringify({
+          locked: true,
+          timestamp: new Date().toISOString(),
+          listingId: listingId
+        }) : null,
+        storageArea: localStorage
+      }));
+    }
+  };
+
+
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (currentUser?.id && e.key === `paymentLock_${currentUser.id}`) {
+        if (e.newValue) {
+          try {
+            const lockData = JSON.parse(e.newValue);
+            const lockTime = new Date(lockData.timestamp).getTime();
+            const currentTime = new Date().getTime();
+            
+        
+            if (currentTime - lockTime > 10 * 60 * 1000) {
+              localStorage.removeItem(e.key!);
+              setIsPaymentLocked(false);
+            } else {
+              setIsPaymentLocked(true);
+            }
+          } catch (error) {
+            console.error("Error parsing lock data from storage:", error);
+            localStorage.removeItem(e.key!);
+            setIsPaymentLocked(false);
+          }
+        } else {
+          setIsPaymentLocked(false);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [currentUser?.id]);
+
   const handleReserveClick = async () => {
     if (!currentUser) {
-      // If user is not logged in, trigger the login modal
       return loginModal.onOpen();
     }
 
-    // If user is logged in, proceed with the existing handleSubmit logic
+    
+    if (isPaymentLocked && !displayRazorpay) {
+  
+      const lockKey = `paymentLock_${currentUser.id}`;
+      const lock = localStorage.getItem(lockKey);
+      
+      if (lock) {
+        try {
+          const lockData = JSON.parse(lock);
+          if (lockData.listingId === listingId) {
+            toast.error("You have a payment in progress for this property. Please complete it first.");
+            return;
+          }
+       
+        } catch (error) {
+          console.error("Error parsing lock data:", error);
+          localStorage.removeItem(lockKey);
+        }
+      }
+    }
+
     await handleSubmit();
   };
 
@@ -67,6 +178,9 @@ function ListingReservation({
           currency: data.currency,
           amount: data.amount,
         });
+        
+    
+        setPaymentLock(true);
         setDisplayRazorpay(true);
       } else {
         toast.error("Failed to create payment order");
@@ -80,13 +194,42 @@ function ListingReservation({
   const handleSuccess = () => {
     console.log("Payment successful!");
     setDisplayRazorpay(false);
-    // Use window.location.href for a full page refresh on redirection
+    setPaymentLock(false); 
     window.location.href = "/trips";
   };
 
   const handleFailure = () => {
     console.log("Payment failed!");
+    setDisplayRazorpay(false);
+    setPaymentLock(false);
     toast.error("Payment failed. Please try again.");
+  };
+
+
+  const handleModalDismiss = () => {
+    console.log("Razorpay modal closed by user");
+    setDisplayRazorpay(false);
+    setPaymentLock(false); 
+    toast("Payment cancelled");
+  };
+
+
+  const isCurrentListingLocked = () => {
+    if (!currentUser?.id || !isPaymentLocked) return false;
+    
+    const lockKey = `paymentLock_${currentUser.id}`;
+    const lock = localStorage.getItem(lockKey);
+    
+    if (lock) {
+      try {
+        const lockData = JSON.parse(lock);
+        return lockData.listingId === listingId;
+      } catch (error) {
+        console.error("Error parsing lock data:", error);
+        return false;
+      }
+    }
+    return false;
   };
 
   return (
@@ -114,10 +257,23 @@ function ListingReservation({
         </div>
         <div className="p-4">
           <Button
-            onClick={handleReserveClick} // Use the new handler instead of handleSubmit
-            disabled={disabled}
-            label="Reserve"
+            onClick={handleReserveClick}
+            disabled={disabled || (isPaymentLocked && isCurrentListingLocked() && !displayRazorpay)}
+            label={isPaymentLocked && isCurrentListingLocked() && !displayRazorpay ? "Payment in Progress..." : "Reserve"}
           />
+          
+         
+          {isPaymentLocked && isCurrentListingLocked() && !displayRazorpay && (
+            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="text-sm text-yellow-800 font-medium">
+                Payment in Progress
+              </div>
+              <div className="text-sm text-yellow-600 mt-1">
+                You have a payment in progress for this property. 
+                Please complete that payment first.
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -136,6 +292,7 @@ function ListingReservation({
             totalPrice={totalPrice}
             onSuccess={handleSuccess}
             onFailure={handleFailure}
+            onDismiss={handleModalDismiss} 
           />
         )}
     </>

@@ -5,7 +5,6 @@ import { getCancelledReservations } from "../actions/getReservation";
 import { getWalletBalance } from "../actions/getWallet";
 import TripsClient from "./TripsClient";
 
-// Add this line to make the page dynamic
 export const dynamic = "force-dynamic";
 
 const TripsPage = async () => {

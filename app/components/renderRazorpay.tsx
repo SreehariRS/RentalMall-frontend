@@ -34,6 +34,7 @@ interface RenderRazorpayProps {
   totalPrice: number;
   onSuccess: () => void;
   onFailure: () => void;
+  onDismiss?: () => void; 
 }
 
 const RenderRazorpay = ({
@@ -47,6 +48,7 @@ const RenderRazorpay = ({
   totalPrice,
   onSuccess,
   onFailure,
+  onDismiss, 
 }: RenderRazorpayProps) => {
   const paymentId = useRef<string | null>(null);
   const paymentMethod = useRef<string | null>(null);
@@ -68,9 +70,9 @@ const RenderRazorpay = ({
         if (result.data.success) {
           console.log("Reservation created successfully:", result.data);
           if (razorpayInstance.current) {
-            razorpayInstance.current.close(); // Attempt to close cleanly
+            razorpayInstance.current.close();
           }
-          onSuccess(); // Trigger redirect and reload in ListingReservation
+          onSuccess();
         } else {
           console.error("Reservation creation failed:", result.data.error);
           onFailure();
@@ -131,16 +133,17 @@ const RenderRazorpay = ({
     modal: {
       confirm_close: true,
       ondismiss: async (reason: any) => {
-        if (reason === undefined) {
-          console.log("Payment cancelled");
-          handlePayment("cancelled");
-        } else if (reason === "timeout") {
-          console.log("Payment timed out");
-          handlePayment("timedout");
-        } else {
-          console.log("Payment failed:", reason);
-          handlePayment("failed", reason);
+        console.log("Payment modal dismissed:", reason);
+        
+        if (onDismiss) {
+          onDismiss();
         }
+        
+     
+        if (razorpayInstance.current) {
+          razorpayInstance.current.close();
+        }
+        onFailure();
       },
     },
     retry: { enabled: false },
@@ -156,6 +159,7 @@ const RenderRazorpay = ({
       if (razorpayInstance.current) {
         console.log("Cleaning up Razorpay instance");
         razorpayInstance.current.close();
+        
       }
     };
   }, []);

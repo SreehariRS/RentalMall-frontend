@@ -1,4 +1,3 @@
-// services\axiosInstance.ts
 import axios from "axios";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -10,7 +9,6 @@ const axiosInstance = axios.create({
   },
 });
 
-// Request Interceptor: Attach access token to every request
 axiosInstance.interceptors.request.use(
   (config) => {
     const accessToken = localStorage.getItem("accessToken");
@@ -22,7 +20,6 @@ axiosInstance.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response Interceptor: Handle token refresh on 401 errors
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -38,7 +35,7 @@ axiosInstance.interceptors.response.use(
           localStorage.setItem("accessToken", accessToken);
           console.log("Token refreshed successfully:", accessToken);
           originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-          return axiosInstance(originalRequest); // Retry the original request with the new token
+          return axiosInstance(originalRequest); 
         } catch (refreshError) {
           console.error("Token refresh failed:", refreshError);
           localStorage.removeItem("accessToken");
